@@ -1,0 +1,2928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CYMATICS ∞</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+:root{
+  --bg:#000;--panel:rgba(4,6,12,0.92);--border:rgba(255,255,255,0.07);
+  --accent:#00ffcc;--accent2:#ff3366;--accent3:#7b4fff;
+  --text:rgba(255,255,255,0.85);--dim:rgba(255,255,255,0.3);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'Share Tech Mono',monospace;color:var(--text);}
+canvas#gl{position:fixed;inset:0;width:100vw;height:100vh;will-change:transform;}
+video#bgVid{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;display:none;}
+canvas#spec{position:fixed;bottom:0;left:0;right:0;height:60px;pointer-events:none;z-index:5;}
+#topbar{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(0,0,0,0.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0;z-index:100;}
+#logo{padding:0 20px;font-family:'Orbitron',monospace;font-size:13px;font-weight:900;letter-spacing:0.15em;color:var(--accent);text-shadow:0 0 20px var(--accent);white-space:nowrap;}
+.mode-tabs{display:flex;height:100%;}
+.tab{padding:0 18px;height:100%;display:flex;align-items:center;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);cursor:pointer;border-right:1px solid var(--border);transition:color 0.2s,background 0.2s;position:relative;}
+.tab:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+.tab.active{color:var(--accent);}
+.tab.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+#topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:12px;}
+.icon-btn{width:32px;height:32px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--dim);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.icon-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.2);}
+#panel{position:fixed;top:48px;right:0;width:300px;height:calc(100vh - 48px);background:rgba(4,6,12,0.95);border-left:1px solid var(--border);overflow-y:auto;z-index:90;transition:transform 0.3s;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.15) transparent;backdrop-filter:blur(16px);}
+#panel.collapsed{transform:translateX(100%);}
+.panel-section{padding:14px;border-bottom:1px solid var(--border);}
+.section-head{font-size:8px;letter-spacing:0.22em;color:var(--accent);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.ctrl-row{margin-top:8px;}
+.ctrl-header{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.ctrl-label{font-size:9px;color:var(--dim);letter-spacing:0.1em;flex:1;}
+.ctrl-desc{font-size:7px;color:rgba(255,255,255,0.2);line-height:1.4;margin-bottom:4px;padding-left:2px;}
+.lock-btn{width:20px;height:16px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--dim);cursor:pointer;font-size:8px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;}
+.lock-btn.locked{border-color:var(--accent2);color:var(--accent2);background:rgba(255,51,102,0.1);}
+.lock-btn.unlocked{border-color:var(--accent);color:var(--accent);background:rgba(0,255,204,0.05);}
+.slider-row{display:flex;align-items:center;gap:6px;}
+input[type=range]{flex:1;-webkit-appearance:none;height:2px;background:rgba(255,255,255,0.1);border-radius:1px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 6px var(--accent);}
+.num-input{width:58px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 5px;outline:none;-moz-appearance:textfield;}
+.num-input:focus{border-color:var(--accent);}
+#geo-outer{margin-top:6px;}
+.geo-dim-group{margin-bottom:8px;}
+.geo-dim-label{font-size:7px;letter-spacing:0.15em;color:var(--accent3);margin-bottom:4px;}
+.geo-row{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;}
+.geo-btn{padding:5px 2px;text-align:center;border:1px solid var(--border);border-radius:4px;font-size:7px;cursor:pointer;transition:all 0.15s;color:var(--dim);background:transparent;line-height:1.2;}
+.geo-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.geo-btn.active{border-color:var(--accent3);color:var(--accent3);background:rgba(123,79,255,0.15);}
+.geo-btn.song-active{border-color:var(--accent2);color:var(--accent2);background:rgba(255,51,102,0.12);animation:pulse-border 0.8s ease-in-out infinite alternate;}
+@keyframes pulse-border{from{box-shadow:0 0 0 rgba(255,51,102,0);}to{box-shadow:0 0 6px rgba(255,51,102,0.4);}}
+.geo-icon{font-size:13px;display:block;margin-bottom:2px;}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+.toggle-label{font-size:9px;color:var(--dim);}
+.tog{position:relative;width:32px;height:16px;}
+.tog input{opacity:0;width:0;height:0;}
+.tog-sl{position:absolute;inset:0;background:rgba(255,255,255,0.08);border-radius:8px;cursor:pointer;transition:0.2s;}
+.tog-sl::before{content:'';position:absolute;width:10px;height:10px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:0.2s;}
+.tog input:checked+.tog-sl{background:rgba(0,255,204,0.4);}
+.tog input:checked+.tog-sl::before{transform:translateX(16px);}
+#freq-input-wrap{display:flex;gap:6px;align-items:center;margin-top:8px;}
+#freq-hz-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:4px;color:var(--accent);font-family:'Orbitron',monospace;font-size:14px;padding:6px 10px;outline:none;}
+#freq-hz-input:focus{border-color:var(--accent);}
+.go-btn{padding:6px 12px;background:rgba(0,255,204,0.1);border:1px solid var(--accent);border-radius:4px;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:9px;cursor:pointer;transition:all 0.15s;}
+.go-btn:hover{background:rgba(0,255,204,0.2);}
+#hud{position:fixed;top:60px;left:16px;z-index:50;pointer-events:none;}
+#hud-freq{font-family:'Orbitron',monospace;font-size:28px;font-weight:700;line-height:1;color:#fff;}
+#hud-band{font-size:8px;letter-spacing:0.2em;color:var(--dim);margin-top:2px;}
+#hud-mode{font-size:9px;letter-spacing:0.12em;color:var(--accent);margin-top:6px;}
+#hud-k{font-size:8px;color:var(--dim);margin-top:2px;}
+#hud-geom{font-size:8px;color:var(--accent3);margin-top:2px;}
+#report-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;}
+#report-overlay.open{display:flex;}
+#report-box{width:min(820px,100%);max-height:85vh;overflow-y:auto;background:rgba(4,8,16,0.98);border:1px solid var(--accent);border-radius:12px;padding:28px;scrollbar-width:thin;scrollbar-color:rgba(0,255,204,0.2) transparent;}
+#report-title{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;color:var(--accent);letter-spacing:0.15em;margin-bottom:4px;}
+#report-subtitle{font-size:9px;letter-spacing:0.2em;color:var(--dim);margin-bottom:24px;}
+.report-section{margin-bottom:20px;}
+.report-section-title{font-size:8px;letter-spacing:0.25em;color:var(--accent3);text-transform:uppercase;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid rgba(123,79,255,0.2);}
+.report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.report-metric{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:10px;}
+.metric-val{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--accent);}
+.metric-label{font-size:7px;letter-spacing:0.15em;color:var(--dim);margin-top:3px;}
+.report-text{font-size:10px;line-height:1.8;color:rgba(255,255,255,0.6);}
+.report-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.report-bar-label{font-size:8px;color:var(--dim);width:80px;flex-shrink:0;}
+.report-bar-track{flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;}
+.report-bar-fill{height:100%;border-radius:2px;transition:width 0.5s;}
+.report-close{margin-top:20px;padding:10px 20px;background:transparent;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.15s;}
+.report-close:hover{background:rgba(0,255,204,0.1);}
+.resonance-hit{display:inline-block;padding:2px 8px;margin:2px;border-radius:3px;font-size:8px;background:rgba(0,255,204,0.08);border:1px solid rgba(0,255,204,0.2);color:var(--accent);}
+.shape-winner{background:rgba(123,79,255,0.15);border:1px solid var(--accent3);border-radius:8px;padding:14px;margin-bottom:12px;text-align:center;}
+.shape-winner-icon{font-size:36px;display:block;margin-bottom:6px;}
+.shape-winner-name{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--accent3);}
+.shape-winner-score{font-size:9px;color:var(--dim);margin-top:4px;}
+.shape-candidates{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;}
+.shape-cand{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:5px;padding:6px;text-align:center;}
+.shape-cand-icon{font-size:18px;}
+.shape-cand-name{font-size:7px;color:var(--dim);margin-top:2px;}
+.shape-cand-score{font-size:8px;color:var(--accent);margin-top:1px;}
+.transport{display:flex;gap:6px;margin-top:8px;}
+.tp-btn{flex:1;padding:7px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:9px;cursor:pointer;transition:all 0.15s;}
+.tp-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.tp-btn.primary{border-color:var(--accent);color:var(--accent);}
+#bg-preview{width:100%;height:60px;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,0.03);margin-top:8px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--dim);}
+#bg-preview img,#bg-preview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.7;}
+.blend-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-top:6px;}
+.blend-btn{padding:5px;text-align:center;border:1px solid var(--border);border-radius:4px;font-size:7px;color:var(--dim);cursor:pointer;transition:all 0.15s;}
+.blend-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.15);}
+.blend-btn.active{border-color:var(--accent3);color:var(--accent3);background:rgba(123,79,255,0.07);}
+.epi-colors{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;}
+.epi-swatch{width:28px;height:28px;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:all 0.18s;}
+.epi-swatch.active{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,0.5);}
+.epi-swatch:hover{transform:scale(1.12);}
+.epi-swatch-label{font-size:6px;color:var(--dim);text-align:center;margin-top:2px;}
+.epi-color-group{display:flex;flex-direction:column;align-items:center;}
+.phi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:4px;}
+.phi-btn{padding:4px 2px;border:1px solid rgba(0,255,204,0.25);border-radius:3px;background:rgba(0,255,204,0.04);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:7px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.phi-btn:hover{background:rgba(0,255,204,0.12);border-color:var(--accent);}
+.phi-btn.neutral{border-color:var(--border);background:transparent;color:var(--dim);}
+.phi-btn.neutral:hover{color:var(--text);border-color:rgba(255,255,255,0.2);}
+.phi-btn.special{grid-column:1/-1;border-color:var(--accent2);color:var(--accent2);background:rgba(255,51,102,0.08);font-size:8px;letter-spacing:0.05em;}
+.phi-btn.special:hover{background:rgba(255,51,102,0.2);border-color:var(--accent2);box-shadow:0 0 8px rgba(255,51,102,0.4);}
+
+/* Frequency preset rows */
+.freq-row{display:flex;align-items:center;gap:6px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;cursor:pointer;transition:all 0.15s;background:transparent;}
+.freq-row:hover{border-color:rgba(0,255,204,0.3);background:rgba(0,255,204,0.04);}
+.freq-row:active{background:rgba(0,255,204,0.1);}
+.freq-row-hz{font-family:'Orbitron',monospace;font-size:10px;color:var(--accent);width:52px;flex-shrink:0;text-align:right;}
+.freq-row-name{font-size:8px;color:var(--text);flex:1;}
+.freq-row-ratio{font-size:7px;color:var(--dim);flex-shrink:0;text-align:right;}
+.freq-row-desc{font-size:6.5px;color:rgba(255,255,255,0.25);display:block;margin-top:1px;}
+
+.inf-row{display:flex;align-items:center;gap:6px;padding:5px 6px;border:1px solid rgba(255,51,102,0.4);border-radius:5px;cursor:pointer;transition:all 0.15s;background:rgba(255,51,102,0.04);}
+.inf-row:hover{border-color:rgba(255,51,102,0.7);background:rgba(255,51,102,0.1);}
+.inf-row:active{background:rgba(255,51,102,0.18);}
+.inf-row-sym{font-family:'Orbitron',monospace;font-size:11px;color:var(--accent2);width:44px;flex-shrink:0;text-align:center;text-shadow:0 0 8px rgba(255,51,102,0.6);}
+.inf-row-name{font-size:8px;color:rgba(255,255,255,0.9);flex:1;}
+.inf-row-desc{font-size:6.5px;color:rgba(255,255,255,0.45);display:block;margin-top:1px;}
+</style>
+</head>
+<body>
+<video id="bgVid" loop playsinline muted></video>
+<canvas id="gl" style="position:fixed;inset:0;z-index:2;"></canvas>
+<canvas id="spec" style="z-index:6;"></canvas>
+
+<div id="topbar">
+  <div id="logo">CYMATICS ∞</div>
+  <div class="mode-tabs">
+    <div class="tab active" data-mode="frequency">∿ Frequency</div>
+    <div class="tab" data-mode="report">◈ Report</div>
+  </div>
+  <div id="topbar-right">
+    <button class="icon-btn" id="panelBtn" title="Toggle Panel">☰</button>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="hud-freq">— Hz</div>
+  <div id="hud-band">—</div>
+  <div id="hud-mode">MODE (0,0) · k = 0.00</div>
+  <div id="hud-k">GEOMETRY: CIRCLE · 2D</div>
+  <div id="hud-geom">— AUTO —</div>
+</div>
+
+<div id="panel">
+
+  <!-- SAFETY -->
+  <div class="panel-section">
+    <div class="section-head">Safety &amp; Display</div>
+    <div class="toggle-row" style="margin-top:6px;">
+      <span class="toggle-label">🛡 Epilepsy Safe Mode</span>
+      <label class="tog"><input type="checkbox" id="epilepsySafe" checked><span class="tog-sl"></span></label>
+    </div>
+    <div class="ctrl-desc" id="epi-desc" style="margin-top:4px;">Safe mode ON — flash rate limited.</div>
+    <div id="epi-color-section" style="margin-top:10px;">
+      <div style="font-size:7px;letter-spacing:0.18em;color:rgba(123,79,255,0.8);margin-bottom:6px;">SAFE COLOR LOCK</div>
+      <div class="epi-colors" id="epiSwatches"></div>
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);">
+      <div style="font-size:7px;letter-spacing:0.18em;color:var(--accent3);margin-bottom:5px;">PANEL BACKGROUND IMAGE</div>
+      <input type="file" id="panelBgFile" accept="image/*" style="font-size:8px;color:rgba(255,255,255,0.35);cursor:pointer;margin-top:4px;width:100%;">
+      <div id="panel-bg-preview" style="width:100%;height:44px;border:1px solid rgba(255,255,255,0.08);border-radius:5px;margin-top:6px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:7px;color:rgba(255,255,255,0.3);overflow:hidden;position:relative;">No image loaded</div>
+      <div style="display:flex;gap:3px;margin-top:5px;">
+        <button class="blend-btn active" id="panelFitCover" onclick="setPanelBgSize(this,'cover')" style="flex:1;">Cover</button>
+        <button class="blend-btn" id="panelFitContain" onclick="setPanelBgSize(this,'contain')" style="flex:1;">Contain</button>
+        <button class="blend-btn" id="panelFitTile" onclick="setPanelBgSize(this,'tile')" style="flex:1;">Tile</button>
+      </div>
+      <div style="margin-top:7px;">
+        <div style="font-size:8px;color:rgba(255,255,255,0.3);margin-bottom:3px;">Image Opacity</div>
+        <div class="slider-row">
+          <input type="range" id="panelBgOpacity" min="0" max="1" step="0.01" value="1" oninput="document.getElementById('panelBgOpacityNum').value=parseFloat(this.value).toFixed(2);applyPanelBg();">
+          <input type="number" class="num-input" id="panelBgOpacityNum" value="1" step="0.01" oninput="document.getElementById('panelBgOpacity').value=this.value;applyPanelBg();">
+        </div>
+      </div>
+      <button class="tp-btn" style="margin-top:7px;width:100%;" onclick="clearPanelBg()">✕ Clear Panel Image</button>
+    </div>
+  </div>
+
+  <!-- CUSTOM BACKGROUND -->
+  <div class="panel-section">
+    <div class="section-head">Custom Background</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+      <label style="font-size:8px;color:var(--dim);">Image (.jpg .png .webp)</label>
+      <input type="file" id="bgImageFile" accept="image/*" style="font-size:8px;color:var(--dim);cursor:pointer;">
+      <label style="font-size:8px;color:var(--dim);margin-top:4px;">Video (.mp4 .webm)</label>
+      <input type="file" id="bgVideoFile" accept="video/*" style="font-size:8px;color:var(--dim);cursor:pointer;">
+    </div>
+    <div id="bg-preview">No background loaded</div>
+    <div class="ctrl-row" style="margin-top:8px;">
+      <div class="ctrl-header"><span class="ctrl-label">BG Blend Mode</span></div>
+      <div class="blend-grid">
+        <div class="blend-btn active" data-blend="normal">Normal</div>
+        <div class="blend-btn" data-blend="screen">Screen</div>
+        <div class="blend-btn" data-blend="overlay">Overlay</div>
+        <div class="blend-btn" data-blend="hard-light">Hard Lt</div>
+        <div class="blend-btn" data-blend="multiply">Multiply</div>
+        <div class="blend-btn" data-blend="color-dodge">Dodge</div>
+      </div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header">
+        <span class="ctrl-label">Shader Opacity</span>
+        <button class="lock-btn unlocked" id="shaderOpacityLock" onclick="toggleLock('shaderOpacity')">🔓</button>
+      </div>
+      <div class="slider-row">
+        <input type="range" id="shaderOpacity" min="0" max="1" step="0.01" value="1">
+        <input type="number" class="num-input" id="shaderOpacityNum" value="1" step="0.01">
+      </div>
+    </div>
+    <button class="tp-btn" style="margin-top:8px;width:100%;" onclick="clearBackground()">✕ Clear Background</button>
+  </div>
+
+  <!-- MEDIA SOURCE -->
+  <div class="panel-section">
+    <div class="section-head">Media Source</div>
+    <label style="font-size:8px;color:var(--dim);">🎵 Audio File</label>
+    <input type="file" id="audioFile" accept="audio/*" style="width:100%;font-size:9px;color:var(--dim);cursor:pointer;margin-top:4px;">
+    <label style="font-size:8px;color:var(--dim);margin-top:8px;display:block;">🎬 Music Video</label>
+    <input type="file" id="musicVideoFile" accept="video/*" style="width:100%;font-size:9px;color:var(--dim);cursor:pointer;margin-top:4px;">
+    <div class="transport" style="margin-top:8px;">
+      <button class="tp-btn primary" id="playBtn">▶ PLAY</button>
+      <button class="tp-btn" id="pauseBtn">⏸ PAUSE</button>
+      <button class="tp-btn" id="stopBtn">■ STOP</button>
+    </div>
+    <div id="trackName" style="font-size:8px;color:var(--dim);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No file loaded</div>
+  </div>
+
+  <!-- FREQUENCY INPUT -->
+  <div class="panel-section" id="freq-mode-panel">
+    <div class="section-head">Frequency Input</div>
+    <div class="ctrl-desc">Enter any Hz or tap a preset. Infinity values map to maximum wave complexity.</div>
+    <div id="freq-input-wrap">
+      <input type="text" id="freq-hz-input" placeholder="Hz — enter 432, pi*100, etc.">
+      <button class="go-btn" id="freqGoBtn">LOCK</button>
+    </div>
+    <div style="margin-top:10px;">
+      <div style="font-size:7px;letter-spacing:0.2em;color:var(--accent3);margin-bottom:5px;">SOLFEGGIO &middot; sorted by harmonic ratio</div>
+      <div id="solfeggioList" style="display:flex;flex-direction:column;gap:3px;"></div>
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:7px;letter-spacing:0.2em;color:var(--accent2);margin-bottom:5px;">TRANSFINITE &middot; LARGE NUMBERS &middot; INFINITIES</div>
+      <div class="ctrl-desc">These map wave number k to maximum shader complexity &mdash; a visual representation of incomprehensible magnitude.</div>
+      <div id="infinityList" style="display:flex;flex-direction:column;gap:3px;"></div>
+    </div>
+  </div>
+
+  <!-- GEOMETRY -->
+  <div class="panel-section">
+    <div class="section-head">Geometry · Dimension</div>
+    <div class="ctrl-desc">Click any shape to lock to it. <strong style="color:var(--accent2)">AUTO</strong> = real-time audio-reactive switching. Report analyzes which shape best fits the song.</div>
+    <div id="geo-outer"></div>
+  </div>
+
+  <!-- WAVE PHYSICS -->
+  <div class="panel-section">
+    <div class="section-head">Wave Physics</div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Damping γ</span><button class="lock-btn unlocked" id="dampingLock" onclick="toggleLock('damping')">🔓</button></div>
+      <div class="ctrl-desc">Controls resonance sharpness. Low = razor-thin nodal lines. High = broad patterns.</div>
+      <div class="slider-row"><input type="range" id="damping" min="0.0001" max="2" step="0.001" value="0.02"><input type="number" class="num-input" id="dampingNum" value="0.02" step="0.001"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Mode N (eigenmodes)</span><button class="lock-btn unlocked" id="modeNLock" onclick="toggleLock('modeN')">🔓</button></div>
+      <div class="ctrl-desc">Number of harmonic modes summed. Higher = more complex patterns.</div>
+      <div class="slider-row"><input type="range" id="modeN" min="2" max="200" step="1" value="10"><input type="number" class="num-input" id="modeNNum" value="10" step="1"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Angular Mode m</span><button class="lock-btn unlocked" id="modeMock" onclick="toggleLock('modeM')">🔓</button></div>
+      <div class="ctrl-desc">Rotational symmetry order. 0 = rings, 6 = hex petals.</div>
+      <div class="slider-row"><input type="range" id="modeM" min="0" max="64" step="1" value="6"><input type="number" class="num-input" id="modeMNum" value="6" step="1"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Wave Scale</span><button class="lock-btn unlocked" id="waveScaleLock" onclick="toggleLock('waveScale')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="waveScale" min="0.000001" max="100" step="0.01" value="1"><input type="number" class="num-input" id="waveScaleNum" value="1" step="0.01"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Rotation Speed</span><button class="lock-btn unlocked" id="rotSpeedLock" onclick="toggleLock('rotSpeed')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="rotSpeed" min="-50" max="50" step="0.01" value="0.1"><input type="number" class="num-input" id="rotSpeedNum" value="0.1" step="0.01"></div>
+    </div>
+  </div>
+
+  <!-- COLOR -->
+  <div class="panel-section">
+    <div class="section-head">Color</div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Hue Shift</span><button class="lock-btn unlocked" id="hueShiftLock" onclick="toggleLock('hueShift')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="hueShift" min="0" max="1" step="0.001" value="0"><input type="number" class="num-input" id="hueShiftNum" value="0" step="0.001"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Saturation</span><button class="lock-btn unlocked" id="saturationLock" onclick="toggleLock('saturation')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="saturation" min="0" max="20" step="0.01" value="1"><input type="number" class="num-input" id="saturationNum" value="1" step="0.01"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Chromatic Spread</span><button class="lock-btn unlocked" id="chromSpreadLock" onclick="toggleLock('chromSpread')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="chromSpread" min="0" max="30" step="0.01" value="1"><input type="number" class="num-input" id="chromSpreadNum" value="1" step="0.01"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Spectrum Shift</span><button class="lock-btn unlocked" id="specShiftLock" onclick="toggleLock('specShift')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="specShift" min="-10" max="10" step="0.001" value="0"><input type="number" class="num-input" id="specShiftNum" value="0" step="0.001"></div>
+    </div>
+  </div>
+
+  <!-- SHAPE & SPACE -->
+  <div class="panel-section">
+    <div class="section-head">Shape &amp; Space</div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Zoom</span><button class="lock-btn unlocked" id="zoomLock" onclick="toggleLock('zoom')">🔓</button></div>
+      <div class="phi-grid" id="phiGrid"></div>
+      <div class="slider-row" style="gap:4px;margin-top:6px;">
+        <input type="number" class="num-input" id="zoomNum" value="0.618" step="0.001" style="flex:1;width:auto;text-align:center;font-size:10px;color:var(--accent);">
+      </div>
+      <input type="range" id="zoom" min="-30" max="30" step="0.001" value="-0.209" style="width:100%;margin-top:6px;" oninput="setZoom(Math.pow(10,parseFloat(this.value)))">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Complexity</span><button class="lock-btn unlocked" id="complexityLock" onclick="toggleLock('complexity')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="complexity" min="0.001" max="40" step="0.01" value="1"><input type="number" class="num-input" id="complexityNum" value="1" step="0.01"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">X Offset</span><button class="lock-btn unlocked" id="offsetXLock" onclick="toggleLock('offsetX')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="offsetX" min="-20" max="20" step="0.01" value="0"><input type="number" class="num-input" id="offsetXNum" value="0" step="0.01"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Y Offset</span><button class="lock-btn unlocked" id="offsetYLock" onclick="toggleLock('offsetY')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="offsetY" min="-20" max="20" step="0.01" value="0"><input type="number" class="num-input" id="offsetYNum" value="0" step="0.01"></div>
+    </div>
+  </div>
+
+  <!-- AUDIO REACTIVITY -->
+  <div class="panel-section">
+    <div class="section-head">Audio Reactivity</div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Bass Impact</span><button class="lock-btn unlocked" id="bassImpactLock" onclick="toggleLock('bassImpact')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="bassImpact" min="0" max="40" step="0.01" value="1"><input type="number" class="num-input" id="bassImpactNum" value="1" step="0.01"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">Mid Impact</span><button class="lock-btn unlocked" id="midImpactLock" onclick="toggleLock('midImpact')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="midImpact" min="0" max="40" step="0.01" value="1"><input type="number" class="num-input" id="midImpactNum" value="1" step="0.01"></div>
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-header"><span class="ctrl-label">High Impact</span><button class="lock-btn unlocked" id="highImpactLock" onclick="toggleLock('highImpact')">🔓</button></div>
+      <div class="slider-row"><input type="range" id="highImpact" min="0" max="40" step="0.01" value="1"><input type="number" class="num-input" id="highImpactNum" value="1" step="0.01"></div>
+    </div>
+  </div>
+
+  <!-- OPTIONS -->
+  <div class="panel-section">
+    <div class="section-head">Options</div>
+    <div class="toggle-row">
+      <span class="toggle-label">🔴 Audio Total Control</span>
+      <label class="tog"><input type="checkbox" id="audioTotal" checked><span class="tog-sl"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Beat Pulse</span>
+      <label class="tog"><input type="checkbox" id="beatPulse" checked><span class="tog-sl"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Inverse Chladni</span>
+      <label class="tog"><input type="checkbox" id="inverse"><span class="tog-sl"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Invert Background Color</span>
+      <label class="tog"><input type="checkbox" id="invertBg"><span class="tog-sl"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Chromatic Aberration</span>
+      <label class="tog"><input type="checkbox" id="chromAberr" checked><span class="tog-sl"></span></label>
+    </div>
+
+    <!-- PERFORMANCE TIER -->
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:8px;letter-spacing:0.22em;color:var(--accent3);text-transform:uppercase;margin-bottom:8px;">⚡ Performance</div>
+      <div id="perfGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;"></div>
+      <div id="perfDesc" style="font-size:7px;color:rgba(255,255,255,0.35);margin-top:6px;line-height:1.5;"></div>
+    </div>
+  </div>
+
+</div><!-- end panel -->
+
+<!-- REPORT MODAL -->
+<div id="report-overlay">
+  <div id="report-box">
+    <div id="report-title">SONIC FIELD REPORT</div>
+    <div id="report-subtitle">SPECTRAL ANALYSIS · QUANTUM RESONANCE · MODAL FINGERPRINT · GEOMETRY ORACLE</div>
+    <div id="report-content"></div>
+    <button class="report-close" onclick="closeReport()">CLOSE REPORT</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// WEBGL2 SETUP
+// ═══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl2', { powerPreference: 'high-performance', antialias: false, desynchronized: true });
+if (!gl) { alert('WebGL2 required'); throw 0; }
+const specCanvas = document.getElementById('spec');
+const sctx = specCanvas.getContext('2d');
+
+// ═══════════════════════════════════════════════════════════════
+// PERFORMANCE TIERS
+// ═══════════════════════════════════════════════════════════════
+const PERF_TIERS = [
+  // LOW group
+  { id:'min-low',    group:'LOW',   label:'Min\nLow',    dpr:0.25, domThrottle:8,  fftSize:1024, desc:'Minimum Low — 25% resolution, max throttle. Oldest phones / extreme battery saving.' },
+  { id:'med-low',    group:'LOW',   label:'Med\nLow',    dpr:0.4,  domThrottle:6,  fftSize:2048, desc:'Medium Low — 40% resolution. Low-end Android, hot devices.' },
+  { id:'low',        group:'LOW',   label:'Low',         dpr:0.6,  domThrottle:4,  fftSize:2048, desc:'Low — 60% resolution. Budget phones, long sessions on battery.' },
+  // MIDDLE group
+  { id:'min-mid',    group:'MID',   label:'Min\nMid',    dpr:0.75, domThrottle:4,  fftSize:4096, desc:'Minimum Middle — 75% resolution. Mid-range phones, HDMI at 720p.' },
+  { id:'med-mid',    group:'MID',   label:'Med\nMid',    dpr:1.0,  domThrottle:3,  fftSize:4096, desc:'Medium Middle — 100% logical resolution. Default balanced mode.' },
+  { id:'mid',        group:'MID',   label:'Mid',         dpr:1.25, domThrottle:3,  fftSize:4096, desc:'Middle — 125% resolution. Mid-high phones, 1080p TV via HDMI.' },
+  // HIGH group
+  { id:'min-high',   group:'HIGH',  label:'Min\nHigh',   dpr:1.5,  domThrottle:2,  fftSize:8192, desc:'Minimum High — 1.5× DPR. Flagship phones, 1080p HDMI.' },
+  { id:'med-high',   group:'HIGH',  label:'Med\nHigh',   dpr:1.75, domThrottle:2,  fftSize:8192, desc:'Medium High — 1.75× DPR. Flagship phones at full native, 1440p TV.' },
+  { id:'high',       group:'HIGH',  label:'High',        dpr:2.0,  domThrottle:2,  fftSize:8192, desc:'High — 2× DPR. Full retina / QHD. Needs a strong GPU.' },
+  // ULTRA group
+  { id:'min-ultra',  group:'ULTRA', label:'Min\nUltra',  dpr:2.5,  domThrottle:1,  fftSize:8192, desc:'Minimum Ultra — 2.5× DPR. Desktop-class GPU, 4K TV via HDMI.' },
+  { id:'med-ultra',  group:'ULTRA', label:'Med\nUltra',  dpr:3.0,  domThrottle:1,  fftSize:8192, desc:'Medium Ultra — 3× DPR. High-end desktop / M-series Mac.' },
+  { id:'ultra',      group:'ULTRA', label:'Ultra',       dpr:Math.min(window.devicePixelRatio||1, 4), domThrottle:1, fftSize:8192, desc:'Ultra — Native max DPR (capped 4×). Best possible quality.' },
+];
+
+const GROUP_COLORS = { LOW:'#ff3366', MID:'#ffaa00', HIGH:'#00ffcc', ULTRA:'#7b4fff' };
+
+let activePerfTierId = 'med-mid'; // default
+
+function getPerfTier() { return PERF_TIERS.find(t => t.id === activePerfTierId) || PERF_TIERS[4]; }
+
+function buildPerfGrid() {
+  const grid = document.getElementById('perfGrid');
+  grid.innerHTML = '';
+  // Group headers + buttons in 4 columns
+  const groups = ['LOW','MID','HIGH','ULTRA'];
+  // Header row
+  groups.forEach(g => {
+    const h = document.createElement('div');
+    h.style.cssText = `font-size:6px;letter-spacing:0.15em;color:${GROUP_COLORS[g]};text-align:center;padding:2px 0;text-transform:uppercase;`;
+    h.textContent = g;
+    grid.appendChild(h);
+  });
+  // 3 rows of buttons (Min, Med, base)
+  const rowLabels = ['min','med',''];
+  for (let row = 0; row < 3; row++) {
+    groups.forEach(g => {
+      const gKey = g.toLowerCase();
+      const id = row === 2 ? gKey : `${rowLabels[row]}-${gKey}`;
+      const tier = PERF_TIERS.find(t => t.id === id);
+      if (!tier) { grid.appendChild(document.createElement('div')); return; }
+      const btn = document.createElement('button');
+      btn.dataset.perfId = tier.id;
+      btn.style.cssText = `padding:4px 2px;border:1px solid ${activePerfTierId === tier.id ? GROUP_COLORS[g] : 'rgba(255,255,255,0.1)'};border-radius:4px;background:${activePerfTierId === tier.id ? GROUP_COLORS[g]+'22' : 'transparent'};color:${activePerfTierId === tier.id ? GROUP_COLORS[g] : 'rgba(255,255,255,0.4)'};font-family:'Share Tech Mono',monospace;font-size:7px;cursor:pointer;text-align:center;white-space:pre;line-height:1.3;transition:all 0.15s;width:100%;`;
+      btn.textContent = tier.label;
+      btn.onclick = () => selectPerfTier(tier.id);
+      grid.appendChild(btn);
+    });
+  }
+  updatePerfDesc();
+}
+
+function selectPerfTier(id) {
+  activePerfTierId = id;
+  buildPerfGrid(); // rebuild to update active styles
+  applyPerfTier();
+}
+
+function applyPerfTier() {
+  const tier = getPerfTier();
+  // Update FFT size if changed
+  if (analyser && analyser.fftSize !== tier.fftSize) {
+    analyser.fftSize = tier.fftSize;
+    fftData = new Uint8Array(analyser.frequencyBinCount);
+  }
+  resize(); // re-render at new resolution
+}
+
+function updatePerfDesc() {
+  const el = document.getElementById('perfDesc');
+  if (el) el.textContent = getPerfTier().desc;
+}
+
+function resize() {
+  const tier = getPerfTier();
+  const effectiveDPR = Math.min(tier.dpr, devicePixelRatio * 1.5); // never exceed 1.5× device native
+  canvas.width  = Math.round(innerWidth  * effectiveDPR);
+  canvas.height = Math.round(innerHeight * effectiveDPR);
+  canvas.style.width  = innerWidth  + 'px';
+  canvas.style.height = innerHeight + 'px';
+  specCanvas.width = innerWidth; specCanvas.height = 60;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+addEventListener('resize', resize); resize();
+
+// ═══════════════════════════════════════════════════════════════
+// GEOMETRY DEFINITIONS — expanded with sacred/fractal/exotic
+// ═══════════════════════════════════════════════════════════════
+// glCode is what the shader receives. Each code maps to a unique function.
+const GEOM_DEFS = [
+  // 0D — auto
+  { dim:'AUTO', id:'0d',   label:'Auto',      icon:'∞',  glCode:99,  desc:'Real-time audio-reactive shape switching' },
+
+  // 1D
+  { dim:'1D',   id:'1l',   label:'Line',      icon:'—',  glCode:0,   desc:'1D standing wave on a string' },
+  { dim:'1D',   id:'1li',  label:'Lissajous', icon:'∿',  glCode:50,  desc:'Lissajous XY parametric curve' },
+  { dim:'1D',   id:'1r',   label:'Rose',      icon:'❀',  glCode:51,  desc:'Rose curve r=cos(nθ)' },
+
+  // 2D Chladni
+  { dim:'2D',   id:'2c',   label:'Circle',    icon:'◯',  glCode:1,   desc:'Circular Chladni plate (Bessel)' },
+  { dim:'2D',   id:'2s',   label:'Square',    icon:'□',  glCode:2,   desc:'Square plate eigenmodes' },
+  { dim:'2D',   id:'2t',   label:'Triangle',  icon:'△',  glCode:3,   desc:'Equilateral triangular plate' },
+  { dim:'2D',   id:'2h',   label:'Hexagon',   icon:'⬡',  glCode:4,   desc:'6-fold hexagonal symmetry' },
+  { dim:'2D',   id:'2p',   label:'Pentagon',  icon:'⬠',  glCode:10,  desc:'5-fold pentagonal symmetry' },
+  { dim:'2D',   id:'2o',   label:'Octagon',   icon:'⬟',  glCode:11,  desc:'8-fold octagonal symmetry' },
+  { dim:'2D',   id:'2e',   label:'Ellipse',   icon:'⬭',  glCode:12,  desc:'Elliptical resonator (Mathieu)' },
+  { dim:'2D',   id:'2r',   label:'Ring',      icon:'◎',  glCode:13,  desc:'Annular ring (two radii)' },
+  { dim:'2D',   id:'2st',  label:'Star',      icon:'★',  glCode:52,  desc:'Star polygon interference' },
+  { dim:'2D',   id:'2sp',  label:'Spiral',    icon:'🌀',  glCode:53,  desc:'Archimedean spiral resonance' },
+
+  // Sacred Geometry
+  { dim:'SACRED',id:'sg1', label:'Seed',      icon:'✡',  glCode:60,  desc:'Seed of Life — 7 overlapping circles' },
+  { dim:'SACRED',id:'sg2', label:'Flower',    icon:'⚘',  glCode:61,  desc:'Flower of Life — 19-circle grid' },
+  { dim:'SACRED',id:'sg3', label:'Metatron',  icon:'🔯',  glCode:62,  desc:"Metatron's Cube — all Platonic projections" },
+  { dim:'SACRED',id:'sg4', label:'Vesica',    icon:'◑',  glCode:63,  desc:'Vesica Piscis — overlapping circle lens' },
+  { dim:'SACRED',id:'sg5', label:'Sri',       icon:'◈',  glCode:64,  desc:'Sri Yantra — interlocking triangles' },
+  { dim:'SACRED',id:'sg6', label:'Torus',     icon:'⊙',  glCode:65,  desc:'Torus knot cross-section' },
+  { dim:'SACRED',id:'sg7', label:'Golden',    icon:'φ',  glCode:66,  desc:'Golden ratio spiral Φ wave' },
+  { dim:'SACRED',id:'sg8', label:'Yantra',    icon:'△▽', glCode:67,  desc:'Star Tetrahedron (Star of David)' },
+
+  // Fractals
+  { dim:'FRACTAL',id:'fr1',label:'Mandel',    icon:'🌑',  glCode:70,  desc:'Mandelbrot set escape-time waves' },
+  { dim:'FRACTAL',id:'fr2',label:'Julia',     icon:'🌒',  glCode:71,  desc:'Julia set frequency-driven parameter' },
+  { dim:'FRACTAL',id:'fr3',label:'Dragon',    icon:'🐉',  glCode:72,  desc:'Dragon curve iterated function system' },
+  { dim:'FRACTAL',id:'fr4',label:'Sierp',     icon:'▲▲', glCode:73,  desc:'Sierpinski triangle interference' },
+  { dim:'FRACTAL',id:'fr5',label:'Koch',      icon:'❄',  glCode:74,  desc:'Koch snowflake harmonic modes' },
+  { dim:'FRACTAL',id:'fr6',label:'Lyapunov',  icon:'∧',  glCode:75,  desc:'Lyapunov exponent map' },
+  { dim:'FRACTAL',id:'fr7',label:'IFS Tree',  icon:'🌿',  glCode:76,  desc:'IFS fern/tree attractor' },
+  { dim:'FRACTAL',id:'fr8',label:'Newton',    icon:'∮',  glCode:77,  desc:'Newton fractal basins of attraction' },
+
+  // 3D
+  { dim:'3D',   id:'3s',   label:'Sphere',    icon:'●',  glCode:5,   desc:'Spherical harmonics Y_lm' },
+  { dim:'3D',   id:'3c',   label:'Cube',      icon:'⬛', glCode:6,   desc:'3D box standing waves' },
+  { dim:'3D',   id:'3t',   label:'Tetrahed',  icon:'▲',  glCode:14,  desc:'Tetrahedral symmetry' },
+  { dim:'3D',   id:'3o',   label:'Octrahed',  icon:'◆',  glCode:15,  desc:'Octahedral group harmonics' },
+  { dim:'3D',   id:'3y',   label:'Cylinder',  icon:'⌀',  glCode:16,  desc:'Cylindrical Bessel-Fourier' },
+  { dim:'3D',   id:'3k',   label:'Torus3D',   icon:'⊕',  glCode:80,  desc:'Klein-inverted torus — surface passes through itself; inside=outside simultaneously' },
+  { dim:'3D',   id:'3m',   label:'Mobius',    icon:'∞',  glCode:81,  desc:'Möbius strip harmonic waves' },
+
+  // 4D+
+  { dim:'4D',   id:'4h',   label:'4-Cube',    icon:'⊞',  glCode:7,   desc:'4D hypercube, 2D projected slice' },
+  { dim:'4D',   id:'4s',   label:'4-Sphere',  icon:'⊕',  glCode:17,  desc:'4-sphere surface harmonics' },
+  { dim:'4D',   id:'4c',   label:'24-cell',   icon:'✦',  glCode:18,  desc:'24-cell polytope resonance' },
+  { dim:'5D',   id:'5p',   label:'5-Simplex', icon:'✧',  glCode:8,   desc:'5 equidistant vertex projection' },
+  { dim:'5D',   id:'5h',   label:'5-Cube',    icon:'⊟',  glCode:19,  desc:'5D hypercube standing waves' },
+  { dim:'6D',   id:'6s',   label:'6-Sphere',  icon:'⊛',  glCode:20,  desc:'6-sphere projection' },
+  { dim:'6D',   id:'6c',   label:'6-Cube',    icon:'⊠',  glCode:21,  desc:'6D hypercube modes' },
+  { dim:'7D',   id:'7s',   label:'7-Sphere',  icon:'❊',  glCode:22,  desc:'7-sphere harmonic expansion' },
+  { dim:'7D',   id:'7c',   label:'7-Simplex', icon:'❋',  glCode:23,  desc:'7-simplex edge resonance' },
+  { dim:'8D',   id:'8s',   label:'8-Sphere',  icon:'⊜',  glCode:24,  desc:'8-sphere projection' },
+  { dim:'8D',   id:'8e',   label:'E8 Proj',   icon:'⁂',  glCode:25,  desc:'E8 root system shadow' },
+  { dim:'9D',   id:'9s',   label:'9-Sphere',  icon:'◉',  glCode:26,  desc:'9-sphere harmonic modes' },
+  { dim:'10D',  id:'10h',  label:'10-Sphere', icon:'⬤',  glCode:9,   desc:'10-sphere projection' },
+  { dim:'10D',  id:'10s',  label:'10-Simpl',  icon:'✺',  glCode:28,  desc:'10-simplex vertex shadow' },
+
+  // Exotic / Mathematical
+  { dim:'EXOTIC',id:'ex1', label:'Chladni',   icon:'≋',  glCode:90,  desc:'Pure Chladni sand pattern simulation' },
+  { dim:'EXOTIC',id:'ex2', label:'Cymbal',    icon:'🎵',  glCode:91,  desc:'Cymbal plate acoustic resonance' },
+  { dim:'EXOTIC',id:'ex3', label:'Voronoi',   icon:'⬡⬡', glCode:92,  desc:'Voronoi cellular wave decomp' },
+  { dim:'EXOTIC',id:'ex4', label:'Diffract',  icon:'≈',  glCode:93,  desc:'Wave diffraction grating pattern' },
+  { dim:'EXOTIC',id:'ex5', label:'Quantum',   icon:'ψ',  glCode:94,  desc:'Quantum wave function probability density' },
+  { dim:'EXOTIC',id:'ex6', label:'Soliton',   icon:'⌇',  glCode:95,  desc:'Soliton / KdV wave packet' },
+  { dim:'EXOTIC',id:'ex7', label:'Harmonograph',icon:'✦',glCode:96,  desc:'Harmonograph pendulum figure' },
+  { dim:'EXOTIC',id:'ex8', label:'Reaction',  icon:'⟳',  glCode:97,  desc:'Reaction-diffusion Turing pattern' },
+];
+
+const GEOM_MAP = {};
+GEOM_DEFS.forEach(g => { GEOM_MAP[g.id] = g.glCode; });
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const PHI = (1 + Math.sqrt(5)) / 2;
+let currentMode = 'frequency';
+let invertBgEnabled = false;
+let _pixBuf = null;
+let currentGeom = '2c';        // ← USER SELECTED geometry id
+let autoGeomGlCode = 1;        // ← only used when currentGeom === '0d'
+let lockedFreqHz = 432;
+let freqLocked = false;
+let currentK = 2.0, targetK = 2.0;
+let rotAngle = 0;
+
+const locks = {
+  damping:false, modeN:false, modeM:false, waveScale:false, rotSpeed:false,
+  hueShift:false, saturation:false, chromSpread:false, specShift:false,
+  zoom:false, complexity:false, offsetX:false, offsetY:false,
+  bassImpact:false, midImpact:false, highImpact:false, shaderOpacity:false,
+};
+
+function toggleLock(id) {
+  locks[id] = !locks[id];
+  document.querySelectorAll('.lock-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + id + "'")) {
+      b.className = 'lock-btn ' + (locks[id] ? 'locked' : 'unlocked');
+      b.textContent = locks[id] ? '🔒' : '🔓';
+    }
+  });
+}
+setTimeout(() => {
+  document.querySelectorAll('.lock-btn').forEach(b => { b.className = 'lock-btn unlocked'; b.textContent = '🔓'; });
+}, 100);
+
+// ═══════════════════════════════════════════════════════════════
+// BUILD GEOMETRY GRID
+// ═══════════════════════════════════════════════════════════════
+function buildGeoGrid() {
+  const outer = document.getElementById('geo-outer');
+  outer.innerHTML = '';
+  const dims = [...new Set(GEOM_DEFS.map(g => g.dim))];
+  dims.forEach(dim => {
+    const shapes = GEOM_DEFS.filter(g => g.dim === dim);
+    const grp = document.createElement('div');
+    grp.className = 'geo-dim-group';
+    grp.innerHTML = `<div class="geo-dim-label">${dim}</div>`;
+    const row = document.createElement('div');
+    row.className = 'geo-row';
+    shapes.forEach(g => {
+      const btn = document.createElement('div');
+      btn.className = 'geo-btn' + (g.id === currentGeom ? ' active' : '');
+      btn.dataset.id = g.id;
+      btn.title = g.desc;
+      btn.innerHTML = `<span class="geo-icon">${g.icon}</span>${g.label}`;
+      btn.onclick = () => selectGeom(g.id);
+      row.appendChild(btn);
+    });
+    grp.appendChild(row);
+    outer.appendChild(grp);
+  });
+}
+
+function selectGeom(id) {
+  currentGeom = id;
+  document.querySelectorAll('.geo-btn').forEach(b => {
+    b.classList.remove('active', 'song-active');
+    if (b.dataset.id === id) b.classList.add('active');
+  });
+}
+
+// buildGeoGrid() called after DOM ready — see DOMContentLoaded below
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO MODE — real-time audio reactive geometry switching
+// ═══════════════════════════════════════════════════════════════
+// These are the geometries AUTO cycles through, mapped by spectral centroid buckets
+const AUTO_GEOMS_BY_CENTROID = [
+  // centroid 0-0.1: deep sub-bass → sacred/low-symmetry
+  ['sg6','sg1','2r','ex8'],
+  // 0.1-0.2: bass → circle, ring, torus
+  ['2c','3k','sg6','2r'],
+  // 0.2-0.3: low-mid → hexagon, flower, torus
+  ['2h','sg2','sg1','3k'],
+  // 0.3-0.4: mid → sacred, flower, Sri
+  ['sg2','sg5','sg3','sg7'],
+  // 0.4-0.5: upper mid → fractal, Mandel, Sierp
+  ['fr1','fr3','fr4','sg3'],
+  // 0.5-0.6: presence → fractal, Julia, Newton
+  ['fr2','fr8','fr6','sg4'],
+  // 0.6-0.7: brilliance → higher dims, exotic
+  ['4h','ex5','ex7','fr5'],
+  // 0.7-0.8: air/treble → high-dim spheres, E8
+  ['8e','5p','ex5','7s'],
+  // 0.8-1.0: extreme treble → E8, 10-sphere, exotic
+  ['8e','10h','ex5','fr2'],
+];
+
+let autoGeomTimestamp = 0;
+let autoGeomCurrentIdx = 0;
+
+function computeAutoGeom(tSec, fftB) {
+  const tot = Math.max(fftB.reduce((a, b) => a + b, 0), 1e-6);
+  const centroid = fftB.reduce((s, v, i) => s + v * i, 0) / (tot * 7);
+  const bucketIdx = Math.min(Math.floor(centroid * AUTO_GEOMS_BY_CENTROID.length), AUTO_GEOMS_BY_CENTROID.length - 1);
+  const bucket = AUTO_GEOMS_BY_CENTROID[bucketIdx];
+
+  // Switch on beat or every ~3 seconds, driven by actual audio energy
+  const timeSince = tSec - autoGeomTimestamp;
+  const energyTrigger = beatEnergy > 0.18 && timeSince > 1.2;
+  const timeTrigger = timeSince > 3.5;
+
+  if (energyTrigger || timeTrigger) {
+    autoGeomTimestamp = tSec;
+    // Pick within bucket based on sub-band ratios for variety
+    const subIdx = Math.floor((fftB[3] + fftB[4]) * bucket.length * 2) % bucket.length;
+    const geomId = bucket[subIdx];
+    autoGeomGlCode = GEOM_MAP[geomId] !== undefined ? GEOM_MAP[geomId] : 1;
+
+    // Highlight the button that is currently active in AUTO mode
+    document.querySelectorAll('.geo-btn').forEach(b => {
+      b.classList.remove('song-active');
+      if (b.dataset.id === geomId) b.classList.add('song-active');
+    });
+
+    return geomId;
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANEL BACKGROUND
+// ═══════════════════════════════════════════════════════════════
+let panelBgUrl = null, panelBgSizeMode = 'cover';
+document.getElementById('panelBgFile').onchange = function(e) {
+  const f = e.target.files[0]; if (!f) return;
+  if (panelBgUrl) URL.revokeObjectURL(panelBgUrl);
+  panelBgUrl = URL.createObjectURL(f);
+  const prev = document.getElementById('panel-bg-preview');
+  prev.innerHTML = '';
+  const img = document.createElement('img'); img.src = panelBgUrl;
+  img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+  prev.appendChild(img); applyPanelBg();
+};
+function applyPanelBg() {
+  const panel = document.getElementById('panel');
+  if (!panelBgUrl) { panel.style.background = 'rgba(4,6,12,0.95)'; panel.style.backgroundImage = ''; return; }
+  const opacity = parseFloat(document.getElementById('panelBgOpacity').value) || 1;
+  const sz = panelBgSizeMode === 'tile' ? 'auto' : panelBgSizeMode;
+  const repeat = panelBgSizeMode === 'tile' ? 'repeat' : 'no-repeat';
+  const oa = (1 - opacity) * 0.95;
+  panel.style.background = 'none';
+  panel.style.backgroundImage = `linear-gradient(rgba(4,6,12,${oa.toFixed(2)}),rgba(4,6,12,${oa.toFixed(2)})), url("${panelBgUrl}")`;
+  panel.style.backgroundSize = `auto, ${sz}`;
+  panel.style.backgroundPosition = 'top left, center center';
+  panel.style.backgroundRepeat = `no-repeat, ${repeat}`;
+  panel.style.backgroundAttachment = 'local, local';
+}
+function clearPanelBg() {
+  if (panelBgUrl) URL.revokeObjectURL(panelBgUrl); panelBgUrl = null;
+  const panel = document.getElementById('panel');
+  panel.style.backgroundImage = ''; panel.style.backgroundSize = '';
+  panel.style.backgroundPosition = ''; panel.style.backgroundRepeat = '';
+  panel.style.backgroundAttachment = ''; panel.style.background = 'rgba(4,6,12,0.95)';
+  document.getElementById('panel-bg-preview').innerHTML = 'No image loaded';
+  document.getElementById('panelBgFile').value = '';
+  document.getElementById('panelBgOpacity').value = 1;
+  document.getElementById('panelBgOpacityNum').value = '1.00';
+}
+function setPanelBgSize(btn, size) {
+  panelBgSizeMode = size;
+  document.querySelectorAll('#panelFitCover,#panelFitContain,#panelFitTile').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); applyPanelBg();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CANVAS BACKGROUND
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('bgImageFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const url = URL.createObjectURL(f);
+  document.body.style.backgroundImage = `url('${url}')`;
+  document.body.style.backgroundSize = 'cover';
+  document.body.style.backgroundPosition = 'center';
+  document.getElementById('bgVid').style.display = 'none';
+  document.getElementById('bg-preview').innerHTML = `<img src="${url}">`;
+};
+document.getElementById('bgVideoFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const url = URL.createObjectURL(f);
+  const vid = document.getElementById('bgVid'); vid.src = url; vid.style.display = 'block'; vid.play();
+  document.body.style.backgroundImage = 'none';
+  document.getElementById('bg-preview').innerHTML = `<video src="${url}" muted autoplay loop style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.7;"></video>`;
+};
+function clearBackground() {
+  document.getElementById('bgVid').style.display = 'none'; document.getElementById('bgVid').src = '';
+  document.body.style.backgroundImage = 'none'; document.getElementById('bg-preview').innerHTML = 'No background loaded';
+  document.getElementById('bgImageFile').value = ''; document.getElementById('bgVideoFile').value = '';
+}
+document.querySelectorAll('.blend-btn').forEach(b => {
+  b.onclick = () => { document.querySelectorAll('.blend-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); canvas.style.mixBlendMode = b.dataset.blend; };
+});
+function syncShaderOpacity() {
+  const v = parseFloat(document.getElementById('shaderOpacity').value);
+  canvas.style.opacity = v; document.getElementById('shaderOpacityNum').value = v.toFixed(2);
+}
+document.getElementById('shaderOpacity').oninput = syncShaderOpacity;
+document.getElementById('shaderOpacityNum').oninput = () => { document.getElementById('shaderOpacity').value = document.getElementById('shaderOpacityNum').value; syncShaderOpacity(); };
+
+document.getElementById('epilepsySafe').onchange = function() {
+  const desc = document.getElementById('epi-desc'), cs = document.getElementById('epi-color-section');
+  if (this.checked) { desc.textContent = 'Safe mode ON — flash rate limited.'; desc.style.color = 'rgba(0,255,204,0.5)'; cs.style.opacity = '1'; cs.style.pointerEvents = 'auto'; }
+  else { desc.textContent = '⚠ Safe mode OFF — unrestricted.'; desc.style.color = 'rgba(255,51,102,0.7)'; cs.style.opacity = '0.4'; cs.style.pointerEvents = 'none'; }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// EPI PALETTES
+// ═══════════════════════════════════════════════════════════════
+const EPI_PALETTES = [
+  { id:'blue',   hue:0.608, name:'Blue',   color:'#1a6fff', dark:'#0a2a80' },
+  { id:'cyan',   hue:0.500, name:'Cyan',   color:'#00e5ff', dark:'#004060' },
+  { id:'green',  hue:0.333, name:'Green',  color:'#00e87a', dark:'#004020' },
+  { id:'teal',   hue:0.460, name:'Teal',   color:'#00c9a7', dark:'#003830' },
+  { id:'purple', hue:0.750, name:'Purple', color:'#9b59ff', dark:'#2a0060' },
+  { id:'violet', hue:0.780, name:'Violet', color:'#c840ff', dark:'#350060' },
+  { id:'red',    hue:0.000, name:'Red',    color:'#ff3333', dark:'#600000' },
+  { id:'orange', hue:0.065, name:'Orange', color:'#ff8c00', dark:'#602500' },
+  { id:'white',  hue:0.000, name:'White',  color:'#d0d8e8', dark:'#202838', sat:0.05 },
+];
+let epiColorId = 'blue';
+function buildEpiSwatches() {
+  const wrap = document.getElementById('epiSwatches'); wrap.innerHTML = '';
+  EPI_PALETTES.forEach(p => {
+    const grp = document.createElement('div'); grp.className = 'epi-color-group';
+    const sw = document.createElement('div'); sw.className = 'epi-swatch' + (p.id === epiColorId ? ' active' : '');
+    sw.style.background = `linear-gradient(135deg, ${p.color}, ${p.dark})`; sw.title = p.name;
+    sw.onclick = () => { epiColorId = p.id; document.querySelectorAll('.epi-swatch').forEach(x => x.classList.remove('active')); sw.classList.add('active'); };
+    const lbl = document.createElement('div'); lbl.className = 'epi-swatch-label'; lbl.textContent = p.name;
+    grp.appendChild(sw); grp.appendChild(lbl); wrap.appendChild(grp);
+  });
+}
+// buildEpiSwatches() called after DOM ready — see DOMContentLoaded below
+function getEpiPalette() { return EPI_PALETTES.find(p => p.id === epiColorId) || EPI_PALETTES[0]; }
+
+// ═══════════════════════════════════════════════════════════════
+// UI BINDINGS
+// ═══════════════════════════════════════════════════════════════
+function bindSlider(id) {
+  const s = document.getElementById(id), n = document.getElementById(id + 'Num');
+  if (!s || !n) return;
+  s.oninput = () => { n.value = parseFloat(s.value); };
+  n.oninput = () => { const v = parseFloat(n.value); if (!isNaN(v)) s.value = v; };
+}
+['damping','modeN','modeM','waveScale','rotSpeed','hueShift','saturation','chromSpread',
+ 'bassImpact','midImpact','highImpact','specShift','complexity','offsetX','offsetY'].forEach(bindSlider);
+
+// ── Element cache — populated once at domInit, never queries DOM again per frame ──
+const EL = {};  // EL['modeN'] = <input>, EL['modeNNum'] = <num input>
+
+function cacheElements() {
+  const ids = [
+    'damping','modeN','modeM','waveScale','rotSpeed',
+    'hueShift','saturation','chromSpread','specShift',
+    'bassImpact','midImpact','highImpact',
+    'zoom','complexity','offsetX','offsetY',
+    'shaderOpacity','panelBgOpacity',
+    'audioTotal','epilepsySafe','inverse','beatPulse','chromAberr','invertBg',
+  ];
+  ids.forEach(id => {
+    EL[id]       = document.getElementById(id);
+    EL[id+'Num'] = document.getElementById(id + 'Num');
+  });
+}
+
+function val(id) {
+  const numEl = EL[id + 'Num'];
+  if (numEl) {
+    const n = parseFloat(numEl.value);
+    if (!isNaN(n)) return n;
+  }
+  const el = EL[id] || document.getElementById(id);
+  return el ? parseFloat(el.value) : 0;
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); t.classList.add('active');
+    if (t.dataset.mode === 'report') { generateReport(); return; }
+    currentMode = t.dataset.mode;
+  };
+});
+document.getElementById('panelBtn').onclick = () => document.getElementById('panel').classList.toggle('collapsed');
+
+// Wire invert background toggle
+document.getElementById('invertBg').onchange = function() { invertBgEnabled = this.checked; if (!this.checked) document.body.style.background = '#000'; };
+
+// Throttle DOM slider display updates on mobile for perf
+let _domUpdateFrame = 0;
+
+function setFreq(hz) {
+  document.getElementById('freq-hz-input').value = hz;
+  lockedFreqHz = hz; freqLocked = true; targetK = freqToK(hz);
+  // clear any active infinity growth
+  activeGrowthClass = null; growthLevel = 0;
+}
+document.getElementById('freqGoBtn').onclick = () => {
+  const raw = document.getElementById('freq-hz-input').value;
+  const hz = parseMathFreq(raw);
+  if (!isNaN(hz) && hz > 0) setFreq(hz);
+};
+// Support Enter key in frequency input
+document.getElementById('freq-hz-input').onkeydown = (e) => {
+  if (e.key === 'Enter') {
+    const hz = parseMathFreq(e.target.value);
+    if (!isNaN(hz) && hz > 0) setFreq(hz);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// PHI ZOOM GRID
+// ═══════════════════════════════════════════════════════════════
+const PHI_PRESETS = [
+  { label: '−φ⁻³', val: -1/(PHI*PHI*PHI) }, { label: '−φ⁻²', val: -1/(PHI*PHI) },
+  { label: '−φ⁻¹', val: -1/PHI },           { label: '−φ',   val: -PHI },
+  { label: '−φ²',  val: -PHI*PHI },          { label: '−φ³',  val: -PHI*PHI*PHI },
+  { label: 'φ⁻³',  val: 1/(PHI*PHI*PHI) },  { label: 'φ⁻²',  val: 1/(PHI*PHI) },
+  { label: 'φ⁻¹',  val: 1/PHI },            { label: 'φ',    val: PHI },
+  { label: 'φ²',   val: PHI*PHI },           { label: 'φ³',   val: PHI*PHI*PHI },
+  { label: '1×',   val: 1, neutral:true },   { label: 'φ⁵',   val: Math.pow(PHI,5), neutral:true },
+  { label: 'φ¹⁰',  val: Math.pow(PHI,10), neutral:true }, { label: 'φ²⁰', val: Math.pow(PHI,20), neutral:true },
+  { label: "tzi's special", val: -0.01516180339, special:true },
+];
+function buildPhiGrid() {
+  const grid = document.getElementById('phiGrid');
+  PHI_PRESETS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'phi-btn' + (p.neutral ? ' neutral' : '') + (p.special ? ' special' : '');
+    btn.textContent = p.label; btn.title = 'zoom=' + p.val.toFixed(5);
+    btn.onclick = () => setZoom(p.val); grid.appendChild(btn);
+  });
+}
+// buildPhiGrid() called after DOM ready — see DOMContentLoaded below
+function setZoom(v) {
+  // Clamp to avoid degenerate values; allow negative zoom for mirror effect
+  if (v === 0 || !isFinite(v)) v = 1 / PHI;
+  const n = document.getElementById('zoomNum');
+  if (n) n.value = Math.abs(v) < 0.001 ? v.toExponential(4) : Math.abs(v) > 9999 ? v.toExponential(3) : parseFloat(v.toFixed(6));
+  // Sync range slider: map zoom linearly on a log10 scale for the slider thumb
+  const s = document.getElementById('zoom');
+  if (s) {
+    const logV = Math.log10(Math.abs(v)) * (v < 0 ? -1 : 1);
+    s.value = Math.max(parseFloat(s.min || -4), Math.min(parseFloat(s.max || 4), logV));
+  }
+}
+function adjustZoom(f) {
+  const n = document.getElementById('zoomNum');
+  const cur = n ? parseFloat(n.value) : 1 / PHI;
+  setZoom(isNaN(cur) || cur === 0 ? 1 / PHI * f : cur * f);
+}
+// setZoom(1/PHI) called in domInit() after DOM ready
+let lastPinchDist = null;
+canvas.addEventListener('touchmove', e => { if (e.touches.length === 2) { e.preventDefault(); const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY, d = Math.sqrt(dx*dx+dy*dy); if (lastPinchDist !== null && !locks.zoom) adjustZoom(d / lastPinchDist); lastPinchDist = d; } }, {passive:false});
+canvas.addEventListener('touchend', () => { lastPinchDist = null; });
+canvas.addEventListener('wheel', e => { e.preventDefault(); if (!locks.zoom) adjustZoom(e.deltaY < 0 ? 1.1 : 0.9); }, {passive:false});
+
+// ═══════════════════════════════════════════════════════════════
+// AUDIO — mobile-safe (AudioContext must be created in user gesture)
+// ═══════════════════════════════════════════════════════════════
+const audio = new Audio(); audio.crossOrigin = 'anonymous';
+let audioCtx, analyser, fftData, fftSize = 8192;
+let fftBands = new Float32Array(8), beatEnergy = 0;
+let beatHistory = new Array(43).fill(0);
+let dominantHz = 0, dominantBandName = '';
+let songData = [], recordingReport = false;
+let pendingAudioUrl = null; // loaded file URL, played on PLAY tap
+
+function ensureAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = fftSize; analyser.smoothingTimeConstant = 0.75;
+    fftData = new Uint8Array(analyser.frequencyBinCount);
+    const src = audioCtx.createMediaElementSource(audio);
+    src.connect(analyser); analyser.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+document.getElementById('audioFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  if (pendingAudioUrl) URL.revokeObjectURL(pendingAudioUrl);
+  pendingAudioUrl = URL.createObjectURL(f);
+  audio.src = pendingAudioUrl;
+  document.getElementById('trackName').textContent = '🎵 ' + f.name + ' — tap PLAY';
+  songData = []; recordingReport = false;
+};
+
+document.getElementById('musicVideoFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  audio.pause(); audio.src = '';
+  const url = URL.createObjectURL(f);
+  const vid = document.getElementById('bgVid');
+  vid.src = url; vid.style.display = 'block'; vid.loop = true;
+  document.getElementById('bg-preview').innerHTML = `<video src="${url}" muted autoplay loop style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.7;"></video>`;
+  document.getElementById('trackName').textContent = '🎬 ' + f.name + ' — tap PLAY';
+  songData = []; recordingReport = false;
+  // Pre-wire video audio context — actual connection happens on PLAY
+  vid.muted = true; // must be muted until user gesture
+};
+
+document.getElementById('playBtn').onclick = () => {
+  ensureAudioCtx(); // safe inside user gesture
+
+  // Audio file path
+  if (audio.src && audio.src !== window.location.href) {
+    audio.play().then(() => { recordingReport = true; }).catch(err => {
+      document.getElementById('trackName').textContent = '⚠ Playback blocked: ' + err.message;
+    });
+  }
+
+  // Music video path
+  const vid = document.getElementById('bgVid');
+  if (vid.src && vid.src !== window.location.href) {
+    vid.muted = false;
+    // Wire video to analyser if not yet done
+    if (!vid._audioWired) {
+      vid._audioWired = true;
+      try {
+        if (!audioCtx) ensureAudioCtx();
+        const vsrc = audioCtx.createMediaElementSource(vid);
+        vsrc.connect(analyser); analyser.connect(audioCtx.destination);
+      } catch(e) { /* already wired */ }
+    }
+    vid.play().then(() => { recordingReport = true; }).catch(() => {});
+  }
+};
+
+document.getElementById('pauseBtn').onclick = () => {
+  audio.pause();
+  const vid = document.getElementById('bgVid'); if (vid.src) vid.pause();
+};
+document.getElementById('stopBtn').onclick = () => {
+  audio.pause(); audio.currentTime = 0;
+  const vid = document.getElementById('bgVid'); vid.pause(); vid.currentTime = 0;
+};
+
+const bandEdges = [0,20,80,300,600,2000,4000,8000,20000];
+const bandNames = ['Sub-Bass','Bass','Low-Mid','Mid','Upper-Mid','Presence','Brilliance','Air'];
+const bandColors = ['#ff2200','#ff6600','#ffaa00','#aaff00','#00ffaa','#00aaff','#7b4fff','#cc00ff'];
+
+function updateFFT() {
+  if (!analyser) { fftBands.fill(0); beatEnergy = 0; dominantHz = 0; return; }
+  analyser.getByteFrequencyData(fftData);
+  const sr = audioCtx.sampleRate, binHz = sr / fftSize;
+  let tot = 0; for (let i = 0; i < fftData.length; i++) tot += fftData[i];
+  if (tot < 50) { fftBands.fill(0); beatEnergy = 0; dominantHz = 0; return; }
+  for (let b = 0; b < 8; b++) {
+    const lo = Math.round(bandEdges[b] / binHz), hi = Math.min(Math.round(bandEdges[b+1] / binHz), fftData.length - 1);
+    let sum = 0, cnt = 0; for (let i = lo; i <= hi; i++) { sum += fftData[i] / 255; cnt++; } fftBands[b] = cnt > 0 ? sum / cnt : 0;
+  }
+  let mx = 0, mi = 0; for (let i = 1; i < fftData.length; i++) if (fftData[i] > mx) { mx = fftData[i]; mi = i; }
+  dominantHz = mi * binHz;
+  let bn = '—'; for (let b = 0; b < 8; b++) if (dominantHz >= bandEdges[b] && dominantHz < bandEdges[b+1]) { bn = bandNames[b]; break; }
+  dominantBandName = bn;
+  const inst = (fftBands[0] * 1.2 + fftBands[1]) * 0.5;
+  beatHistory.shift(); beatHistory.push(inst);
+  const avg = beatHistory.reduce((a, b) => a + b, 0) / beatHistory.length;
+  beatEnergy = Math.max(0, inst - avg * 1.4);
+  if (recordingReport && Math.random() < 0.1) {
+    songData.push({t:audio.currentTime, bands:[...fftBands], k:currentK, beatE:beatEnergy, domHz:dominantHz});
+    if (songData.length > 3000) songData.shift();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHYSICS HELPERS
+// ═══════════════════════════════════════════════════════════════
+// C_NORM: freqToK(440) = PI so 440 Hz lands on the first Chladni eigenmode.
+// k = PI * sqrt(hz / 440), kToFreq inverts: hz = 440 * (k/PI)^2
+// ── PROPER MATH: BIHARMONIC PLATE DISPERSION ──
+// For a stiff plate, frequency ω ∝ k². This means k ∝ √ω.
+const C_NORM = 440.0 / Math.pow(Math.PI, 2.0);
+function freqToK(hz) {
+  if (!isFinite(hz) || hz > 1e30) return 40.0;
+  return Math.PI * Math.sqrt(Math.max(hz, 1.0) / 440.0);
+}
+function kToFreq(k) { return 440.0 * Math.pow(k / Math.PI, 2.0); }
+
+// Parse math constants like 'pi', 'tau', 'phi', 'e'
+function parseMathFreq(val) {
+  if (typeof val !== 'string') return val;
+  let s = val.toLowerCase()
+    .replace(/pi/g, Math.PI)
+    .replace(/tau/g, Math.PI * 2)
+    .replace(/phi/g, (1 + Math.sqrt(5)) / 2)
+    .replace(/e/g, Math.E);
+  try {
+    // Basic arithmetic support
+    let res = Function('"use strict";return (' + s + ')')();
+    return isFinite(res) ? res : parseFloat(val);
+  } catch(e) { return parseFloat(val); }
+}
+
+function closestMode(k, geom) {
+  // Search up to n1,n2=16 so large k values still find real candidate eigenmodes
+  let best = Infinity, bn1 = 0, bn2 = 0;
+  let secondBest = Infinity, sn1 = 0, sn2 = 0;
+  for (let n1 = 0; n1 <= 16; n1++) for (let n2 = 0; n2 <= 16; n2++) {
+    if (n1 === 0 && n2 === 0) continue;
+    const kn = Math.PI * Math.sqrt(n1*n1 + n2*n2);
+    const diff = Math.abs(k - kn);
+    if (diff < best) { secondBest = best; sn1 = bn1; sn2 = bn2; best = diff; bn1 = n1; bn2 = n2; }
+    else if (diff < secondBest) { secondBest = diff; sn1 = n1; sn2 = n2; }
+  }
+  // If k is within 0.5 of an eigenmode → exact match label
+  if (best < 0.5) return { n1:bn1, n2:bn2, label:`(${bn1},${bn2})` };
+  // Emergent zone: k sits between modes — synthesise an interpolated "emergent" label.
+  // The blend weight shows how far between the two nearest modes we are.
+  const kA = Math.PI * Math.sqrt(bn1*bn1 + bn2*bn2);
+  const kB2 = Math.PI * Math.sqrt(sn1*sn1 + sn2*sn2);
+  const span = Math.abs(kA - kB2) || 1;
+  const t = Math.min(best / span, 1);
+  // Fractional mode notation: shows the two bounding eigenmodes and blend ratio
+  const pct = (t * 100).toFixed(0);
+  return {
+    n1: bn1, n2: bn2,
+    label: `(${bn1},${bn2})↔(${sn1},${sn2}) ✦${pct}%`,
+    emergent: true, blend: t
+  };
+}
+
+function geomLabel(id) {
+  const def = GEOM_DEFS.find(x => x.id === id);
+  return def ? `${def.dim} · ${def.label}` : id;
+}
+
+function computeTargetK() {
+  if (currentMode === 'frequency' && freqLocked) return freqToK(lockedFreqHz);
+  if (!analyser) return 2.0;
+  const b = fftBands;
+  if (currentMode === 'cymatic') {
+    const tot = Math.max((b[0]+b[1]+b[2]+b[3]+b[4]+b[5]+b[6]+b[7]) / 8, 1e-6);
+    const centroid = (b[1]*1+b[2]*2+b[3]*3+b[4]*4+b[5]*5+b[6]*6+b[7]*7) / Math.max(tot*8*7, 1e-6);
+    return 1 + centroid * 30;
+  }
+  return dominantHz > 0 ? freqToK(dominantHz) : 2.0;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SPECTRUM ANALYSER CANVAS
+// ═══════════════════════════════════════════════════════════════
+function drawSpectrum() {
+  const W = specCanvas.width, H = specCanvas.height;
+  sctx.clearRect(0, 0, W, H);
+  if (!analyser || !fftData) return;
+  const g = sctx.createLinearGradient(0, 0, W, 0);
+  [[0,'#8B0000'],[0.12,'#FF4500'],[0.25,'#FFD700'],[0.38,'#ADFF2F'],[0.5,'#00FF7F'],[0.62,'#00CED1'],[0.75,'#4169E1'],[0.87,'#8A2BE2'],[1,'#2E0057']
+  ].forEach(([t, c]) => g.addColorStop(t, c));
+  const bins = Math.min(fftData.length, 1024), bw = W / bins;
+  for (let i = 0; i < bins; i++) {
+    const v = fftData[i] / 255, x = i * bw, bh = v * H;
+    sctx.globalAlpha = 0.8; sctx.fillStyle = g; sctx.fillRect(x, H - bh, bw + 0.5, bh);
+  }
+  const fg = sctx.createLinearGradient(0, 0, 0, H);
+  fg.addColorStop(0, 'rgba(0,0,0,0.85)'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+  sctx.globalAlpha = 1; sctx.fillStyle = fg; sctx.fillRect(0, 0, W, H);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HUD
+// ═══════════════════════════════════════════════════════════════
+function updateHUD() {
+  const hzEl = document.getElementById('hud-freq'), bandEl = document.getElementById('hud-band');
+  if (currentMode === 'frequency' && freqLocked) {
+    if (!isFinite(lockedFreqHz) && activeGrowthClass) {
+      hzEl.textContent = GROWTH_CLASSES[activeGrowthClass].display(growthLevel);
+    } else {
+      hzEl.textContent = isFinite(lockedFreqHz) ? lockedFreqHz.toFixed(1) + ' Hz' : '∞';
+    }
+    hzEl.style.color = 'var(--accent2)';
+    bandEl.textContent = activeGrowthClass ? '∞ TRANSFINITE LOCK' : 'FREQUENCY LOCK';
+  } else if (dominantHz > 0) {
+    hzEl.textContent = dominantHz < 1000 ? dominantHz.toFixed(1) + ' Hz' : (dominantHz/1000).toFixed(2) + ' kHz';
+    for (let b = 0; b < 8; b++) if (dominantHz >= bandEdges[b] && dominantHz < bandEdges[b+1]) { hzEl.style.color = bandColors[b]; break; }
+    bandEl.textContent = dominantBandName;
+  } else { hzEl.textContent = '— Hz'; bandEl.textContent = '—'; hzEl.style.color = '#fff'; }
+  const mode = closestMode(currentK, currentGeom);
+  const kDisp = isFinite(currentK) && currentK < 1e10 ? currentK.toFixed(2) : '...';
+  const fDisp = isFinite(currentK) && currentK < 1e10 ? kToFreq(currentK).toFixed(1) + 'Hz' : '∞';
+  document.getElementById('hud-mode').textContent = `MODE ${mode.label} · k=${kDisp} · f=${fDisp}`;
+  document.getElementById('hud-k').textContent = geomLabel(currentGeom);
+  const growthStr = growthHUDString();
+  document.getElementById('hud-geom').textContent = growthStr
+    ? `⚡ ${growthStr}`
+    : (currentGeom === '0d' ? '⟳ AUTO REACTIVE' : '');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REPORT — analyses which geometry BEST FITS the song
+// ═══════════════════════════════════════════════════════════════
+
+// Score a geometry against averaged spectral features
+// Returns 0–100
+function scoreGeomForSong(geomId, avgBands, entropy, harmonicRich, beatAvg, peakBeat, centroid, roughness) {
+  const b = avgBands;
+  const lowE = (b[0]+b[1]) / 2;
+  const midE = (b[2]+b[3]+b[4]) / 3;
+  const highE = (b[5]+b[6]+b[7]) / 3;
+  let score = 0;
+
+  switch(geomId) {
+    // Sacred — bloom on harmonic-rich, mid-dominant tracks
+    case 'sg1': score = harmonicRich * 40 + midE * 60 - lowE * 20; break;
+    case 'sg2': score = harmonicRich * 50 + midE * 50 - highE * 20; break;
+    case 'sg3': score = harmonicRich * 60 + entropy * 30; break;
+    case 'sg4': score = midE * 70 + (1 - roughness) * 30; break;
+    case 'sg5': score = harmonicRich * 40 + (1 - entropy) * 50 - lowE * 20; break;
+    case 'sg6': score = lowE * 50 + (b[2]+b[3]) * 30 + beatAvg * 40; break;
+    case 'sg7': score = harmonicRich * 50 + midE * 30 + (1 - roughness) * 20; break;
+
+    // 2D Chladni — work for most music
+    case '2c': score = 60 + midE * 30 - highE * 20; break;
+    case '2s': score = 40 + entropy * 40 + midE * 20; break;
+    case '2h': score = harmonicRich * 50 + midE * 40 - lowE * 20; break;
+    case '2t': score = entropy * 60 + roughness * 30 + highE * 10; break;
+    case '2p': score = harmonicRich * 40 + midE * 50; break;
+    case '2o': score = entropy * 50 + highE * 40; break;
+    case '2r': score = lowE * 60 + beatAvg * 30; break;
+    case '2st': score = highE * 50 + roughness * 40 + entropy * 10; break;
+    case '2sp': score = midE * 40 + harmonicRich * 40 + (1-entropy) * 20; break;
+    case '2e': score = midE * 60 + (1-roughness) * 40; break;
+
+    // Fractals — treble/complex music
+    case 'fr1': score = highE * 70 + entropy * 30; break;
+    case 'fr2': score = highE * 60 + entropy * 20 + roughness * 20; break;
+    case 'fr3': score = entropy * 60 + roughness * 40; break;
+    case 'fr4': score = midE * 40 + entropy * 30 + roughness * 30; break;
+    case 'fr5': score = highE * 50 + entropy * 30 + roughness * 20; break;
+    case 'fr6': score = entropy * 70 + (1-harmonicRich) * 30; break;
+    case 'fr7': score = midE * 50 + (1-roughness) * 30 + entropy * 20; break;
+    case 'fr8': score = highE * 40 + entropy * 40 + roughness * 20; break;
+
+    // 3D — complex, full-spectrum
+    case '3s': score = harmonicRich * 50 + (b[2]+b[3]+b[4]) * 40 - roughness * 20; break;
+    case '3c': score = entropy * 40 + midE * 40 + lowE * 20; break;
+    case '3k': score = lowE * 50 + harmonicRich * 30 + beatAvg * 20; break;
+    case '3m': score = entropy * 50 + roughness * 30 + highE * 20; break;
+
+    // Exotic
+    case 'ex1': score = 50 + (1-roughness) * 30 + harmonicRich * 20; break;
+    case 'ex2': score = entropy * 40 + roughness * 40 + highE * 20; break;
+    case 'ex3': score = midE * 60 + entropy * 40; break;
+    case 'ex4': score = highE * 50 + entropy * 30 + roughness * 20; break;
+    case 'ex5': score = entropy * 70 + highE * 30; break;
+    case 'ex6': score = lowE * 60 + beatAvg * 40; break;
+    case 'ex7': score = (1-roughness) * 60 + harmonicRich * 40; break;
+    case 'ex8': score = midE * 50 + (b[2]) * 30 + (1-entropy) * 20; break;
+
+    // 4D+
+    case '4h': score = entropy * 60 + highE * 30 + roughness * 10; break;
+    case '8e': score = entropy * 50 + highE * 50; break;
+    case '10h': score = entropy * 40 + highE * 40 + roughness * 20; break;
+
+    // 1D
+    case '1l': score = lowE * 70 + (1-entropy) * 30; break;
+    case '1li': score = harmonicRich * 60 + (1-roughness) * 40; break;
+    case '1r': score = harmonicRich * 50 + midE * 30 + (1-roughness) * 20; break;
+
+    default: score = 30;
+  }
+  return Math.max(0, Math.min(100, score));
+}
+
+function generateReport() {
+  document.getElementById('report-overlay').classList.add('open');
+  if (songData.length < 10) {
+    document.getElementById('report-content').innerHTML = '<p class="report-text" style="color:var(--accent2)">Load and play a song for at least a few seconds, then open the report.</p>';
+    return;
+  }
+  const n = songData.length;
+  const avgBands = new Array(8).fill(0);
+  let peakBeat = 0, avgBeat = 0;
+  const kHistory = [], resonanceHits = new Set();
+
+  for (const frame of songData) {
+    for (let i = 0; i < 8; i++) avgBands[i] += frame.bands[i];
+    avgBeat += frame.beatE; if (frame.beatE > peakBeat) peakBeat = frame.beatE;
+    kHistory.push(frame.k);
+    for (let n1 = 0; n1 <= 8; n1++) for (let n2 = 0; n2 <= 8; n2++) {
+      const kn = Math.PI * Math.sqrt(n1*n1 + n2*n2);
+      if (Math.abs(frame.k - kn) < 0.3 && kn > 0.1) resonanceHits.add(`(${n1},${n2})`);
+    }
+  }
+  for (let i = 0; i < 8; i++) avgBands[i] /= n;
+  avgBeat /= n;
+
+  const totalE = Math.max(avgBands.reduce((a,b)=>a+b,0), 1e-6);
+  const centroid = avgBands.reduce((s,v,i)=>s+v*i,0) / (totalE * 7);
+  const p = avgBands.map(v => v / totalE);
+  const entropy = Math.min(-p.reduce((s,pi)=>s+(pi>1e-6?pi*Math.log2(pi):0),0) / 3, 1);
+  const harmonicRich = Math.min((avgBands[2]+avgBands[3]+avgBands[4]+avgBands[5]) / Math.max((avgBands[0]+avgBands[1])*4, 1e-6), 1);
+  const kMin = Math.min(...kHistory), kMax = Math.max(...kHistory);
+  const maxBandIdx = avgBands.indexOf(Math.max(...avgBands));
+  let roughness = 0;
+  for (let i = 0; i < 7; i++) roughness += Math.abs(avgBands[i+1] - avgBands[i]);
+  roughness = Math.min(roughness / (7 * totalE), 1);
+  const connectivity = Math.min(resonanceHits.size / 20, 1);
+  const lowE = (avgBands[0]+avgBands[1]) / 2;
+  const midE = (avgBands[2]+avgBands[3]+avgBands[4]) / 3;
+  const highE = (avgBands[5]+avgBands[6]+avgBands[7]) / 3;
+
+  // Score ALL geometries (exclude 0d auto)
+  const scorable = GEOM_DEFS.filter(g => g.id !== '0d');
+  const scored = scorable.map(g => ({
+    ...g,
+    score: scoreGeomForSong(g.id, avgBands, entropy, harmonicRich, avgBeat, peakBeat, centroid, roughness)
+  })).sort((a,b) => b.score - a.score);
+
+  const winner = scored[0];
+  const runners = scored.slice(1, 7);
+
+  // Character description
+  let character = '';
+  if (entropy > 0.7 && harmonicRich > 0.5) character = 'Highly complex harmonic structure — this song spans many eigenmodes and exhibits rich overtone series.';
+  else if (lowE > 0.4) character = 'Bass-dominant energy — low-frequency fundamentals drive large-scale nodal patterns and deep resonant figures.';
+  else if (highE > 0.4) character = 'Treble-rich spectrum — high wave numbers produce complex fractal-like nodal structures and fine detail.';
+  else if (harmonicRich > 0.6) character = 'Mid-harmonic richness — vocal and instrumental fundamentals produce clean, symmetric modal figures.';
+  else character = 'Balanced spectral profile — this song explores a wide range of Chladni geometries across its duration.';
+
+  let quantumNote = resonanceHits.size > 15 ? 'High resonance hit count — strong mode coupling, analogous to superposition of many eigenstates.'
+    : resonanceHits.size > 5 ? 'Moderate resonance activity — the song periodically locks onto clean eigenmodes.'
+    : 'Few resonance crossings — complex interference dominates over clean modal figures.';
+
+  document.getElementById('report-content').innerHTML = `
+    <div class="report-section">
+      <div class="report-section-title">🔮 Song Geometry Oracle</div>
+      <div class="ctrl-desc" style="margin-bottom:12px;font-size:9px;">Analyzed ${n} spectral frames and scored all ${scorable.length} geometries against this song's unique fingerprint. The dominant geometry is the resonant shape that best captures its energy distribution.</div>
+      <div class="shape-winner">
+        <span class="shape-winner-icon">${winner.icon}</span>
+        <div class="shape-winner-name">${winner.label} — ${winner.dim}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.5);margin-top:4px;">${winner.desc}</div>
+        <div class="shape-winner-score" style="margin-top:8px;">Resonance Score: <span style="color:var(--accent);font-family:'Orbitron',monospace;font-size:14px;">${winner.score.toFixed(1)}</span> / 100</div>
+      </div>
+      <div style="font-size:8px;color:var(--dim);margin-bottom:6px;">Other strong candidates:</div>
+      <div class="shape-candidates">
+        ${runners.map(g=>`<div class="shape-cand"><div class="shape-cand-icon">${g.icon}</div><div class="shape-cand-name">${g.label}</div><div class="shape-cand-score">${g.score.toFixed(0)}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="report-section">
+      <div class="report-section-title">Spectral Overview</div>
+      <div class="report-grid">
+        <div class="report-metric"><div class="metric-val">${(entropy*100).toFixed(0)}%</div><div class="metric-label">Spectral Entropy</div></div>
+        <div class="report-metric"><div class="metric-val">${(harmonicRich*100).toFixed(0)}%</div><div class="metric-label">Harmonic Richness</div></div>
+        <div class="report-metric"><div class="metric-val">${(connectivity*100).toFixed(0)}%</div><div class="metric-label">Modal Connectivity</div></div>
+        <div class="report-metric"><div class="metric-val">${(roughness*100).toFixed(0)}%</div><div class="metric-label">Spectral Roughness</div></div>
+        <div class="report-metric"><div class="metric-val">${kMin.toFixed(1)}–${kMax.toFixed(1)}</div><div class="metric-label">Wave Number Range</div></div>
+        <div class="report-metric"><div class="metric-val">${bandNames[maxBandIdx]}</div><div class="metric-label">Dominant Band</div></div>
+      </div>
+    </div>
+    <div class="report-section">
+      <div class="report-section-title">Frequency Band Profile</div>
+      ${avgBands.map((v,i)=>`
+        <div class="report-bar-row">
+          <div class="report-bar-label">${bandNames[i]}</div>
+          <div class="report-bar-track"><div class="report-bar-fill" style="width:${Math.min(v/Math.max(...avgBands)*100,100).toFixed(1)}%;background:${bandColors[i]};"></div></div>
+          <div style="font-size:8px;color:var(--dim);width:36px;text-align:right;">${(v*100).toFixed(1)}%</div>
+        </div>`).join('')}
+    </div>
+    <div class="report-section">
+      <div class="report-section-title">Quantum Resonance Hits</div>
+      <p class="report-text" style="margin-bottom:8px;">${quantumNote}</p>
+      <div>${[...resonanceHits].slice(0,30).map(r=>`<span class="resonance-hit">${r}</span>`).join('')}</div>
+      <p class="report-text" style="margin-top:8px;">${resonanceHits.size} unique eigenmodes · ${n} frames analyzed · ${n} samples</p>
+    </div>
+    <div class="report-section">
+      <div class="report-section-title">Sonic Character</div>
+      <p class="report-text">${character}</p>
+    </div>`;
+}
+
+function closeReport() {
+  document.getElementById('report-overlay').classList.remove('open');
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode === 'frequency'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GLSL — expanded with all new geometry functions
+// ═══════════════════════════════════════════════════════════════
+const VS = `#version 300 es
+in vec2 pos;
+void main(){gl_Position=vec4(pos,0,1);}`;
+
+const FS = `#version 300 es
+precision highp float;
+out vec4 outColor;
+
+uniform vec2  uRes;
+uniform float uTime;
+uniform float uRotAngle;
+uniform float uWaveScale;
+uniform float uHueShift;
+uniform float uSaturation;
+uniform float uChromSpread;
+uniform float uDamping;
+uniform float uBeatEnergy;
+uniform float uBassImpact,uMidImpact,uHighImpact;
+uniform float uZoom;
+uniform float uComplexity;
+uniform float uOffsetX,uOffsetY;
+uniform float uSpecShift;
+uniform float b0,b1,b2,b3,b4,b5,b6,b7;
+uniform float uK;
+uniform int   uModeN;
+uniform int   uModeM;
+uniform int   uGeom;
+uniform bool  uInverse,uBeatPulse,uChromAberr,uEpiSafe;
+uniform float uEpiHue,uEpiSat;
+
+#define PI  3.14159265358979
+#define TAU 6.28318530717959
+#define PHI 1.61803398874989
+
+vec3 hsl(float h,float s,float l){
+  h=fract(h)*6.; float c=(1.-abs(2.*l-1.))*s,x=c*(1.-abs(mod(h,2.)-1.));
+  vec3 r; if(h<1.)r=vec3(c,x,0.);else if(h<2.)r=vec3(x,c,0.);
+  else if(h<3.)r=vec3(0.,c,x);else if(h<4.)r=vec3(0.,x,c);
+  else if(h<5.)r=vec3(x,0.,c);else r=vec3(c,0.,x);
+  return r+(l-c*.5);
+}
+vec3 srgb(vec3 c){return pow(max(c,vec3(0.)),vec3(1./2.2));}
+vec2 rot2(vec2 p,float a){return vec2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));}
+
+// ── Bessel J_m approximation ──
+float besselJ(int m,float x){
+  if(x<1e-6) return (m==0)?1.:0.;
+  if(x>4.0){ float ph=x-float(m)*PI*0.5-PI*0.25; return sqrt(2.0/(PI*x))*cos(ph); }
+  float xh=x*0.5,sum=1.,term=1.,h2=xh*xh,pfx=1.;
+  for(int i=1;i<=m;i++) pfx*=xh/float(i);
+  for(int k=1;k<=12;k++){term*=-h2/(float(k)*float(m+k));sum+=term;if(abs(term)<1e-7)break;}
+  return pfx*sum;
+}
+
+// ── Core resonator functions ──
+float circleResp(vec2 p,float k,float g,int N,int M){
+  float r=length(p),th=atan(p.y,p.x),W=0.,ns=0.;
+  for(int mi=0;mi<=M;mi++) for(int ni=1;ni<=N;ni++){
+    float z=(float(ni)+float(mi)*0.5-0.25)*PI; if(mi==0) z=float(ni)*PI*0.97;
+    float Jv=besselJ(mi,z*r),ang=cos(float(mi)*th);
+    float d2=(k*k-z*z)*(k*k-z*z)+4.*g*g*k*k;
+    float A=ang/max(d2*.001,1e-6); W+=A*Jv*ang; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float squareResp(vec2 p,float k,float g,int N){
+  vec2 pp=(p+1.)*0.5; float W=0.,ns=0.;
+  for(int n1=0;n1<=N;n1++) for(int n2=0;n2<=N;n2++){
+    if(n1==0&&n2==0) continue;
+    float kn=PI*sqrt(float(n1*n1+n2*n2));
+    float U=cos(float(n1)*PI*pp.x)*cos(float(n2)*PI*pp.y);
+    float Usrc=cos(float(n1)*PI*.5)*cos(float(n2)*PI*.5);
+    float norm=(n1==0?1.:sqrt(2.))*(n2==0?1.:sqrt(2.)); U*=norm; Usrc*=norm;
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=Usrc/max(d2*.001,1e-6); W+=A*U; ns+=abs(A*Usrc);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float triResp(vec2 p,float k,float g,int N){
+  float a=1.8,W=0.,ns=0.;
+  for(int n1=1;n1<=N;n1++) for(int n2=0;n2<=n1;n2++){
+    float kn=4.*PI/(3.*a)*sqrt(float(n1*n1+n2*n2-n1*n2));
+    float U=cos(2.*PI/(3.*a)*float(2*n1-n2)*p.x)*cos(2.*PI/(sqrt(3.)*a)*float(n2)*p.y)
+           +cos(2.*PI/(3.*a)*float(2*n2-n1)*p.x)*cos(2.*PI/(sqrt(3.)*a)*float(n1)*p.y)
+           -cos(2.*PI/(3.*a)*float(n1+n2)*p.x)*cos(2.*PI/(sqrt(3.)*a)*float(n1-n2)*p.y);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float nSymResp(vec2 p,float k,float g,int N,int sym){
+  float W=0.,ns=0.,sf=float(sym);
+  for(int n=1;n<=N;n++){
+    float kn=float(n)*PI*0.8,U=0.;
+    for(int s=0;s<sym;s++){
+      float a=float(s)*TAU/sf+uTime*0.04;
+      U+=cos(dot(p,vec2(cos(a),sin(a)))*kn);
+    }
+    U/=sf;
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float sphereResp(vec2 p,float k,float g,int N){
+  float r=length(p),th=acos(clamp(p.y/max(r,1e-6),-1.,1.)),phi_=atan(p.x,p.y);
+  float W=0.,ns=0.;
+  for(int l=0;l<=N;l++){
+    float kn=sqrt(float(l*(l+1))+.01)*PI*0.5;
+    float Pl=cos(float(l)*th)*cos(float(l)*phi_*0.5);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*Pl; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float cubeResp(vec2 p,float k,float g,int N){
+  float z=sin(uTime*.3+length(p)*2.);
+  float W=0.,ns=0.;
+  for(int n1=1;n1<=N;n1++) for(int n2=1;n2<=N;n2++){
+    float kn=PI*sqrt(float(n1*n1+n2*n2+n2*n1));
+    float U=cos(float(n1)*PI*(p.x+1.)*.5)*cos(float(n2)*PI*(p.y+1.)*.5)*cos(float(n1)*PI*(z+1.)*.5);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float hyperResp(vec2 p,float k,float g,int N){
+  float t=uTime*.15,w=cos(t+length(p))*.7,v=sin(t*1.3-p.x)*.7;
+  float W=0.,ns=0.;
+  for(int n1=1;n1<=N;n1++) for(int n2=1;n2<=N;n2++){
+    float kn=PI*sqrt(float(n1*n1+n2*n2)*2.);
+    float U=cos(float(n1)*PI*(p.x+1.)*.5)*cos(float(n2)*PI*(p.y+1.)*.5)*cos(float(n1)*PI*(w+1.)*.5)*cos(float(n2)*PI*(v+1.)*.5);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float lineResp(vec2 p,float k,float g,int N){
+  float W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float kn=float(n)*PI,U=sin(float(n)*PI*(p.x+1.)*.5),Usrc=sin(float(n)*PI*.5);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=Usrc/max(d2*.001,1e-6); W+=A*U; ns+=abs(A*Usrc);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float ringResp(vec2 p,float k,float g,int N,int M){
+  float r=length(p),th=atan(p.y,p.x),W=0.,ns=0.;
+  for(int mi=0;mi<=M;mi++) for(int ni=1;ni<=N;ni++){
+    float z=(float(ni)+float(mi)*.5-.25)*PI;
+    float Jv=besselJ(mi,z*r)-besselJ(mi,z*.3)*besselJ(mi,z*r);
+    float ang=cos(float(mi)*th);
+    float d2=(k*k-z*z)*(k*k-z*z)+4.*g*g*k*k;
+    float A=ang/max(d2*.001,1e-6); W+=A*Jv*ang; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float sphereNDResp(vec2 p,float k,float g,int N,int dims){
+  float W=0.,ns=0.,t=uTime*.07*float(dims)*.3;
+  for(int n=1;n<=N;n++){
+    float kn=float(n)*PI*.6,U=0.;
+    for(int d=0;d<dims;d++){
+      float a1=float(d)*TAU/float(dims)+t,a2=float(d)*2.399+t*1.3;
+      U+=cos(dot(p,vec2(cos(a1)*cos(a2),sin(a1)*cos(a2+1.)))*kn*1.2);
+    }
+    U/=float(dims);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float simplexNDResp(vec2 p,float k,float g,int N,int dims){
+  float W=0.,ns=0.,t=uTime*.05;
+  for(int n=1;n<=N;n++){
+    float kn=float(n)*PI*.7,U=0.;
+    for(int s=0;s<dims;s++){
+      float a=float(s)*TAU/float(dims)+t*float(s)*.1+uTime*.03;
+      U+=cos(dot(p,vec2(cos(a),sin(a)))*kn*1.5);
+    }
+    U/=float(dims);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float hyperNDResp(vec2 p,float k,float g,int N,int dims){
+  float W=0.,ns=0.,t=uTime*(0.1+float(dims)*.01);
+  for(int n1=1;n1<=N;n1++) for(int n2=1;n2<=n1;n2++){
+    float kn=PI*sqrt(float(n1*n1+n2*n2)*float(dims)*.4);
+    float U=cos(float(n1)*PI*(p.x+1.)*.5)*cos(float(n2)*PI*(p.y+1.)*.5);
+    for(int d=2;d<dims;d++) U*=cos(t*float(d)*.3+float(n1+n2)*float(d));
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+// ── glCode 80: Self-Threading Torus — Ray-Marched SDF ──
+// We ray-march a real 3D torus so the hole is always correctly visible.
+// The torus axis is vertical (Y). Camera looks along -Z from z=2.5.
+// Self-threading: outer surface + inner return tube co-exist.
+
+// Torus SDF: axis along Y, major radius R, tube radius r
+float sdTorus(vec3 q, float R, float r){
+  vec2 t_ = vec2(length(q.xz) - R, q.y);
+  return length(t_) - r;
+}
+
+float torusResp(vec2 p, float k, float g, int N){
+  float t_ = uTime * 0.055;
+
+  // ── Camera setup ──
+  // p is in [-1,1]x[-1,1] (NDC). Camera at (0,0,2.5) looking at origin.
+  // p is already aspect-corrected by the caller (p.x *= aspect)
+  vec3 ro = vec3(0.0, 0.0, 2.5);              // ray origin
+  vec3 rd = normalize(vec3(p.x, p.y, -2.0)); // ray direction
+
+  // ── Physical Drift & Bobbing ──
+  // The torus is no longer hardcoded at (0,0,0). It now drifts in a Lissajous pattern.
+  vec3 drift = vec3(
+    sin(t_ * 0.31) * 0.15, // Horizontal drift
+    cos(t_ * 0.27) * 0.12, // Vertical bobbing
+    sin(t_ * 0.19) * 0.10  // Depth drift
+  );
+  // Add a "kick" based on bass energy
+  drift += vec3(0.0, b0 * 0.2, 0.0);
+  
+  // ── Slow camera orbit — tilted so we see the hole clearly ──
+  float camYaw   = t_ * 0.22;
+  float camPitch = 0.42;
+  float cp = cos(camPitch), sp2 = sin(camPitch);
+  mat3 Rx = mat3(1,0,0,  0,cp,-sp2,  0,sp2,cp);
+  float cy = cos(camYaw), sy = sin(camYaw);
+  mat3 Ry = mat3(cy,0,sy,  0,1,0,  -sy,0,cy);
+  mat3 cam = Ry * Rx;
+  
+  // Apply camera transform to ray origin and direction
+  ro = cam * ro;
+  rd = cam * rd;
+  
+  // Apply the inverse camera transform to the drift so it moves in screen space
+  vec3 worldDrift = cam * drift;
+
+  float R  = 0.60;   // major radius
+  float r0 = 0.24;   // tube radius (outer)
+  float Ri = 0.26;   // inner ring major radius
+  float r0i= 0.11;   // inner tube radius
+
+  // ── Ray march: find torus surface ──
+  float dist = 0.0;
+  float hitOuter = 0.0, hitInner = 0.0;
+  float tHit = -1.0;
+  vec3  hitPt;
+  for(int i = 0; i < 80; i++){
+    vec3 q = ro + rd * dist;
+    // Subtract drift from the sample point to move the torus in space
+    q -= worldDrift;
+    
+    // Add an independent wobble to the torus itself
+    float wobbleT = uTime * 0.4;
+    float wS = sin(wobbleT), wC = cos(wobbleT);
+    mat3 wobble = mat3(wC, 0, wS, 0, 1, 0, -wS, 0, wC) * mat3(1, 0, 0, 0, wC, -wS, 0, wS, wC);
+    q = wobble * q;
+
+    // Audio-reactive surface displacement (ripples)
+    float ripple = sin(length(q)*18.0 - uTime*6.0) * (b2+b3+b4)*0.025;
+    float dO = sdTorus(q, R,  r0) - ripple;
+    float dI = sdTorus(q, Ri, r0i) - ripple;
+    float d  = min(dO, dI);
+    if(d < 0.002){
+      tHit = dist;
+      hitPt = q;
+      hitOuter = (dO < dI) ? 1.0 : 0.0;
+      hitInner = 1.0 - hitOuter;
+      break;
+    }
+    dist += max(d * 0.7, 0.002);
+    if(dist > 5.0) break;
+  }
+
+  if(tHit < 0.0) return 0.0;  // no hit = black background
+
+  // ── Surface coordinates for wave patterns ──
+  vec3  q3  = hitPt;
+  float phi_   = atan(q3.z, q3.x);        // toroidal angle (around big ring)
+  float rho_   = length(q3.xz);
+  float theta_ = atan(q3.y, rho_ - R);    // poloidal angle (around tube)
+
+  // Inner ring has its own angles
+  float thetaI = atan(q3.y, rho_ - Ri);
+
+  // ── Normal for basic diffuse shading ──
+  float eps = 0.001;
+  vec3 nrm = normalize(vec3(
+    sdTorus(hitPt + vec3(eps,0,0), hitOuter>0.5?R:Ri, hitOuter>0.5?r0:r0i)
+  - sdTorus(hitPt - vec3(eps,0,0), hitOuter>0.5?R:Ri, hitOuter>0.5?r0:r0i),
+    sdTorus(hitPt + vec3(0,eps,0), hitOuter>0.5?R:Ri, hitOuter>0.5?r0:r0i)
+  - sdTorus(hitPt - vec3(0,eps,0), hitOuter>0.5?R:Ri, hitOuter>0.5?r0:r0i),
+    sdTorus(hitPt + vec3(0,0,eps), hitOuter>0.5?R:Ri, hitOuter>0.5?r0:r0i)
+  - sdTorus(hitPt - vec3(0,0,eps), hitOuter>0.5?R:Ri, hitOuter>0.5?r0:r0i)
+  ));
+  // Light source rotates with the camera so the torus is always illuminated
+  vec3 lightDir = cam * normalize(vec3(0.6, 1.0, 0.8));
+  float diff = max(dot(nrm, lightDir), 0.0) * 0.5 + 0.3;
+
+  // ── Iridescence / Fresnel Energy ──
+  // Use the rotated ray direction for the view vector
+  vec3 viewDir = -rd;
+  float fresnel = pow(1.0 - max(dot(nrm, viewDir), 0.0), 3.0);
+  // Energy glow based on high frequency activity
+  float energy = fresnel * (b4+b5+b6+b7) * 1.5;
+
+  // ── Standing wave on surface with Laplace-Beltrami Metric Weighting ──
+  float W = 0., ns = 0.;
+  float th = hitOuter > 0.5 ? theta_ : thetaI;
+  float Ruse  = hitOuter > 0.5 ? R  : Ri;
+  float r0use = hitOuter > 0.5 ? r0 : r0i;
+  
+  for(int n = 1; n <= N; n++){
+    for(int m = 0; m <= N/2; m++){
+      // PROPER MATH: Eigenfrequencies on a torus depend on the local metric.
+      // λ_{n,m} = n²/(R+r cos θ)² + m²/r²
+      float kn = sqrt(float(n*n)/pow(Ruse + r0use*cos(th), 2.0) + float(m*m)/(r0use*r0use));
+      
+      float phaseFlip = hitInner > 0.5 ? PI : 0.0;
+      float dirFlip   = hitInner > 0.5 ? -1.0 : 1.0;
+      float U = cos(float(n)*phi_ + dirFlip*t_ + phaseFlip) * cos(float(m)*th + t_*0.5);
+      
+      // Biharmonic response: (k² - kn²)² + damping
+      float d2 = (k*k - kn*kn)*(k*k - kn*kn) + 4.0*uDamping*uDamping*k*k;
+      float A  = 1.0 / max(d2 * 0.001, 1e-6);
+      W  += A * U; ns += abs(A);
+    }
+  }
+  float wave = ns > 1e-8 ? W/ns : 0.0;
+
+  // Combine wave, diffuse lighting, and the iridescent energy glow
+  return wave * diff + energy;
+}
+
+float mobiusResp(vec2 p,float k,float g,int N){
+  // Möbius strip: twist the coordinate space by half-angle, then evaluate square plate modes.
+  // The twist creates the characteristic one-sided surface topology.
+  float t=uTime*.05,th=atan(p.y,p.x),r=length(p);
+  float twist=sin(th*.5+t);
+  // Scale r so the pattern fills the screen at default zoom
+  vec2 tp=vec2((r*0.85)*cos(th+twist*.35),(p.y*0.85)+twist*.45);
+  return squareResp(tp, clamp(k,0.001,60.), g, N);
+}
+
+// ── Sacred Geometry ──
+float seedOfLifeResp(vec2 p,float k,float g,int N){
+  // 7 circles: center + 6 surrounding
+  float W=0.,ns=0.;
+  float rad=0.8;
+  vec2 centers[7];
+  centers[0]=vec2(0.,0.);
+  for(int i=0;i<6;i++) centers[i+1]=vec2(cos(float(i)*PI/3.)*rad,sin(float(i)*PI/3.)*rad);
+  for(int ci=0;ci<7;ci++){
+    vec2 lp=p-centers[ci]; float r=length(lp),th=atan(lp.y,lp.x);
+  for(int ni=1;ni<=N;ni++){
+    // PROPER MATH: Zeroes of the Bessel function J0 for a clamped circular plate
+    float z=float(ni)*PI*0.97;
+    float Jv=besselJ(0,z*r);
+    // Biharmonic resonance
+    float d2=(k*k-z*z)*(k*k-z*z)+4.0*uDamping*uDamping*k*k;
+    float A=1.0/max(d2*0.001, 1e-6); W+=A*Jv; ns+=abs(A);
+  }
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float flowerOfLifeResp(vec2 p,float k,float g,int N){
+  // Cymatics-correct: hexagonal lattice plane wave superposition at two scales
+  // produces the overlapping-circle petal nodal lines seen on hex-driven plates
+  float W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float kn=float(n)*PI*0.8;
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6);
+    // 6 plane waves at 0,60,120,180,240,300 deg — inner hexagonal ring
+    float U1=0.;
+    for(int i=0;i<6;i++){
+      float a=float(i)*PI/3.;
+      U1+=cos(dot(p,vec2(cos(a),sin(a)))*kn);
+    }
+    U1/=6.;
+    // 6 plane waves rotated 30 deg — outer ring, scaled by sqrt(3)
+    float U2=0.;
+    for(int i=0;i<6;i++){
+      float a=float(i)*PI/3.+PI/6.;
+      U2+=cos(dot(p,vec2(cos(a),sin(a)))*kn*1.732);
+    }
+    U2/=6.;
+    float U=U1*0.6+U2*0.4;
+    W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float metatronResp(vec2 p,float k,float g,int N){
+  // Overlay 6-fold, 4-fold, and 3-fold symmetry (all Platonic projections)
+  float a=nSymResp(p,k,g,N,6)*.4;
+  float b_=nSymResp(p,k,g,N,4)*.3;
+  float c_=nSymResp(rot2(p,PI/6.),k,g,N,3)*.3;
+  return a+b_+c_;
+}
+float vesicaResp(vec2 p,float k,float g,int N){
+  float offset=0.5;
+  vec2 p1=p-vec2(offset,0.), p2=p+vec2(offset,0.);
+  float r1=length(p1),r2=length(p2),W=0.,ns=0.;
+  for(int ni=1;ni<=N;ni++){
+    float z=float(ni)*PI*.97;
+    float Jv=besselJ(0,z*r1)+besselJ(0,z*r2);
+    float d2=(k*k-z*z)*(k*k-z*z)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*Jv; ns+=abs(A)*2.;
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float sriYantraResp(vec2 p,float k,float g,int N){
+  // Interlocking 4 up-triangles + 5 down-triangles approximated as mixed 3-fold + inverted 3-fold
+  float a=triResp(p,k,g,N)*.5;
+  float b_=triResp(rot2(p,PI),k,g,N)*.5;
+  float c_=circleResp(p,k,g,N/3,4)*.3;
+  return (a+b_+c_)/(1.3);
+}
+float torusKnotResp(vec2 p,float k,float g,int N){
+  // Torus knot (2,3) cross-section with clear ring silhouette
+  float R=0.62,r0=0.30,t=uTime*.04;
+  float phi_=atan(p.y,p.x);
+  vec2 nearest=vec2(cos(phi_),sin(phi_))*R;
+  vec2 diff=p-nearest;
+  float rm=length(diff);
+  float theta_=atan(diff.y,diff.x);
+  float tubeDist=rm-r0;
+  float edgeMask=exp(-tubeDist*tubeDist*10.0);
+  float W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float kn=float(n)*PI*.75;
+    float phase=2.*phi_-3.*theta_+t*float(n)*.12;
+    float U=cos(kn*(rm-r0)*3.0)*cos(phase);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6);
+    W+=A*U*(0.3+0.7*edgeMask);
+    ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float goldenSpiralResp(vec2 p,float k,float g,int N){
+  float r=length(p),th=atan(p.y,p.x);
+  // Logarithmic spiral r = e^(th/PHI) → resonance along spiral arms
+  float W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float kn=float(n)*PI*.9;
+    float spiralPhase=th/PHI+uTime*.03;
+    float U=cos(kn*(r - 0.1*exp(mod(spiralPhase,TAU)*.15)));
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float starTetraResp(vec2 p,float k,float g,int N){
+  float a=nSymResp(p,k,g,N,3)*.5;
+  float b_=nSymResp(rot2(p,PI),k,g,N,3)*.5;
+  return a+b_;
+}
+
+// ── 1D curves ──
+float lissajousResp(vec2 p,float k,float g,int N){
+  float t=uTime*.05,W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float a=float(n)*.97,b_=float(n+1)*.97;
+    float lx=cos(a*t),ly=sin(b_*t+PI/4.);
+    vec2 lp=p-vec2(lx,ly)*.8;
+    float d2=(k*k-(a*a+b_*b_))*(k*k-(a*a+b_*b_))+4.*g*g*k*k;
+    float A=exp(-dot(lp,lp)*k*5.)/max(d2*.001,1e-6);
+    W+=A; ns+=abs(1./max(d2*.001,1e-6));
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float roseCurveResp(vec2 p,float k,float g,int N){
+  float r=length(p),th=atan(p.y,p.x),W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float nf=float(n);
+    float rn=cos(nf*th)*0.9;
+    float dr=r-rn;
+    float d2=(k*k-(nf*nf))*(k*k-(nf*nf))+4.*g*g*k*k;
+    float A=exp(-dr*dr*k*8.)/max(d2*.001,1e-6);
+    W+=A; ns+=abs(1./max(d2*.001,1e-6));
+  }
+  return ns>1e-8?W/ns:0.;
+}
+
+// ── 2D specials ──
+float starResp(vec2 p,float k,float g,int N){
+  float a=nSymResp(p,k,g,N,5)*.6+nSymResp(rot2(p,PI/5.),k,g,N,5)*.4;
+  return a;
+}
+float spiralResp(vec2 p,float k,float g,int N){
+  float r=length(p),th=atan(p.y,p.x),t=uTime*.04,W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float kn=float(n)*PI*.8;
+    float U=cos(kn*(r-th*0.3-t));
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+
+// ── Fractals ──
+float mandelbrotResp(vec2 p,float k,float g,int N){
+  // Escape time modulated by wave
+  vec2 c=p*.8; vec2 z=vec2(0.); int i=0;
+  for(;i<32;i++){
+    if(dot(z,z)>4.) break;
+    z=vec2(z.x*z.x-z.y*z.y,2.*z.x*z.y)+c;
+  }
+  float esc=float(i)/32.;
+  // Modulate escape time by k-resonance
+  float kmod=sin(k*esc*PI)*cos(k*esc*0.7);
+  return kmod;
+}
+float juliaResp(vec2 p,float k,float g,int N){
+  // Julia set with k-driven parameter
+  float a=uTime*.1;
+  vec2 c=vec2(cos(a)*0.7885,sin(a)*0.7885);
+  vec2 z=p*.9; int i=0;
+  for(;i<32;i++){
+    if(dot(z,z)>4.) break;
+    z=vec2(z.x*z.x-z.y*z.y,2.*z.x*z.y)+c;
+  }
+  float esc=float(i)/32.;
+  return sin(k*esc*PI);
+}
+float dragonCurveResp(vec2 p,float k,float g,int N){
+  // Approximate dragon curve via folded sine interference
+  float W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float fn=float(n);
+    float kn=fn*PI*.6;
+    float fold=p.x*(fn*.7)+p.y*(fn*.5+sin(fn));
+    float U=sin(k*fold+uTime*.03*fn);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float sierpinskiResp(vec2 p,float k,float g,int N){
+  // IFS triangle: fold 3 times and evaluate
+  vec2 q=p;
+  for(int i=0;i<4;i++){
+    q=abs(q)*2.-1.;
+    q=rot2(q,PI/6.);
+  }
+  return triResp(q*.25,k,g,N);
+}
+float kochResp(vec2 p,float k,float g,int N){
+  // Koch snowflake: 6-fold + 6-fold rotated by 30deg, recursed
+  float a=nSymResp(p,k,g,N,6)*.5;
+  float b_=nSymResp(rot2(p*1.73,PI/6.),k,g,N,6)*.5;
+  return a+b_;
+}
+float lyapunovResp(vec2 p,float k,float g,int N){
+  // Lyapunov exponent-style map: stability of logistic iterated
+  float a=clamp(p.x*.5+1.5,1.,3.9),b_=clamp(p.y*.5+1.5,1.,3.9);
+  float x=0.5; float L=0.;
+  for(int i=0;i<20;i++){
+    float r=(mod(float(i),2.)<1.)?a:b_;
+    x=r*x*(1.-x);
+    float df=abs(r*(1.-2.*x)); L+=log(max(df,1e-6));
+  }
+  L/=20.;
+  return sin(k*L*1.5);
+}
+float ifsFernResp(vec2 p,float k,float g,int N){
+  // Barnsley fern-like interference
+  float W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float fn=float(n),kn=fn*PI*.7;
+    // Fern transform approximated as asymmetric shear wave
+    vec2 fp1=vec2(p.x*.01,p.y*.16);
+    vec2 fp2=vec2(.85*p.x+.04*p.y,-.04*p.x+.85*p.y+1.6);
+    float U=cos(kn*length(fp1))+cos(kn*length(fp2*.5));
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U*.5; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float newtonResp(vec2 p,float k,float g,int N){
+  // Newton fractal basins for z^3-1=0: 3 roots
+  vec2 z=p*.7; int it=0;
+  for(;it<24;it++){
+    float zr=dot(z,z); if(zr<1e-8) break;
+    // z - (z^3-1)/(3z^2) = (2z^3+1)/(3z^2)
+    vec2 z2=vec2(z.x*z.x-z.y*z.y, 2.*z.x*z.y);
+    vec2 z3=vec2(z2.x*z.x-z2.y*z.y, z2.x*z.y+z2.y*z.x);
+    vec2 num=2.*z3+vec2(1.,0.);
+    vec2 den=3.*z2;
+    float d=dot(den,den);
+    z=vec2((num.x*den.x+num.y*den.y)/d,(num.y*den.x-num.x*den.y)/d);
+  }
+  return sin(k*atan(z.y,z.x)+float(it)*0.3);
+}
+
+// ── Exotic ──
+float pureChladniResp(vec2 p,float k,float g,int N){
+  // Sand-simulation style: sum of cos products like f(x,y)=cos(mx)*cos(ny)-cos(nx)*cos(my)
+  float W=0.;
+  for(int n=1;n<=N;n++) for(int m=0;m<=N;m++){
+    float fn=float(n),fm=float(m);
+    W+=cos(fn*PI*p.x)*cos(fm*PI*p.y)-cos(fm*PI*p.x)*cos(fn*PI*p.y);
+  }
+  float kmod=sin(k*W*0.3);
+  return kmod;
+}
+float cymbalResp(vec2 p,float k,float g,int N){
+  // Cymbal: concentric rings with slight elliptical asymmetry + high modes
+  float r=length(p*vec2(1.,1.1)),th=atan(p.y,p.x);
+  float W=0.,ns=0.;
+  for(int ni=1;ni<=N;ni++) for(int mi=0;mi<=6;mi++){
+    float z=(float(ni)+float(mi)*.7-.25)*PI;
+    float Jv=besselJ(mi,z*r);
+    float ang=cos(float(mi)*th+uTime*.02*float(mi));
+    float d2=(k*k-z*z)*(k*k-z*z)+4.*g*g*k*k;
+    float A=ang/max(d2*.001,1e-6); W+=A*Jv*ang; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float voronoiResp(vec2 p,float k,float g,int N){
+  float W=0.,ns=0.;
+  for(int i=0;i<12;i++){
+    float a=float(i)*TAU/12.+uTime*.02;
+    vec2 site=vec2(cos(a),sin(a))*.7;
+    float r=length(p-site);
+    float kn=float(i+1)*PI*.5;
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=exp(-r*r*3.)/max(d2*.001,1e-6); W+=A; ns+=abs(1./max(d2*.001,1e-6));
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float diffractionResp(vec2 p,float k,float g,int N){
+  float W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float kn=float(n)*PI*.8;
+    float slitSep=0.5,numSlits=float(N/2+1);
+    float path=0.;
+    for(int s=0;s<N/2+1;s++) path+=sin(k*(p.x*slitSep*(float(s)-numSlits*.5)+p.y*float(n)*.3));
+    path/=numSlits;
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*path; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float quantumResp(vec2 p,float k,float g,int N){
+  // Quantum harmonic oscillator probability density: |ψ_n(x,y)|^2
+  float W=0.,ns=0.;
+  for(int nx=0;nx<=N/2;nx++) for(int ny=0;ny<=N/2;ny++){
+    float Enx=float(nx)+.5,Eny=float(ny)+.5;
+    float kn=sqrt(2.*(Enx+Eny))*PI*.5;
+    float psi=exp(-(p.x*p.x+p.y*p.y)*.5)*cos(float(nx)*PI*p.x)*cos(float(ny)*PI*p.y);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*psi; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float solitonResp(vec2 p,float k,float g,int N){
+  float W=0.,ns=0.,t=uTime*.06;
+  for(int n=1;n<=N;n++){
+    float fn=float(n),kn=fn*PI*.8,v=fn*.15;
+    // KdV soliton: sech^2(x-vt)
+    float xi=p.x-v*t;
+    float s=cosh(xi*fn*.7); float sech2=1./(s*s);
+    float U=sech2*cos(kn*p.y*.5);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float harmonographResp(vec2 p,float k,float g,int N){
+  // Harmonograph: evaluate wave at the locus traced by a double pendulum
+  float t=uTime*.04,W=0.,ns=0.;
+  for(int n=1;n<=N;n++){
+    float fn=float(n);
+    float f1=fn*1.007,f2=fn*.998,f3=fn*1.003,f4=fn*1.;
+    float d1=.002*fn,d2_=.003*fn;
+    float lx=sin(f1*t+PI/4.)*exp(-d1*t),ly=sin(f2*t)*exp(-d2_*t);
+    float rx=sin(f3*t)*exp(-d1*t*.5),ry=sin(f4*t+PI/3.)*exp(-d2_*t*.7);
+    vec2 trace=vec2(lx+rx,ly+ry)*.5;
+    float kn=fn*PI*.7;
+    float U=exp(-dot(p-trace,p-trace)*k*4.);
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+float reactionDiffResp(vec2 p,float k,float g,int N){
+  // Turing / Gray-Scott approximation: standing interference producing spots/stripes
+  float W=0.,ns=0.;
+  float feed=.055,kill=.062;
+  for(int n=1;n<=N;n++) for(int m=0;m<=n;m++){
+    float fn=float(n),fm=float(m);
+    float kn=PI*sqrt(fn*fn+fm*fm)*0.5;
+    // Turing: wave number near sqrt(feed*kill) gives instability
+    float turingAmp=exp(-20.*pow(kn-k*.3,2.));
+    float U=cos(fn*PI*(p.x+1.)*.5)*cos(fm*PI*(p.y+1.)*.5)*turingAmp;
+    float d2=(k*k-kn*kn)*(k*k-kn*kn)+4.*g*g*k*k;
+    float A=1./max(d2*.001,1e-6); W+=A*U; ns+=abs(A);
+  }
+  return ns>1e-8?W/ns:0.;
+}
+
+// ── Master dispatch ──
+// N² loop shapes: squareResp, cubeResp, hyperResp, hyperNDResp — cap N to avoid 46²=2116 iters
+// Other shapes are single-loop (N iters) and can use full N safely.
+int capN(int N, bool isNSquared) { return isNSquared ? min(N, 24) : N; }
+
+float getW(vec2 p,float k,float g,int N,int M){
+  // Classic 1D/2D/3D/4D/ND
+  if(uGeom==0)   return lineResp(p,k,g,N);
+  if(uGeom==1)   return circleResp(p,k,g,N,M);
+  if(uGeom==2)   return squareResp(p,k,g,capN(N,true));
+  if(uGeom==3)   return triResp(p,k,g,capN(N,true));
+  if(uGeom==4)   return nSymResp(p,k,g,N,6);
+  if(uGeom==5)   return sphereResp(p,k,g,N);
+  if(uGeom==6)   return cubeResp(p,k,g,capN(N,true));
+  if(uGeom==7)   return hyperResp(p,k,g,capN(N,true));
+  if(uGeom==8)   return simplexNDResp(p,k,g,N,5);
+  if(uGeom==9)   return sphereNDResp(p,k,g,N,10);
+  if(uGeom==10)  return nSymResp(p,k,g,N,5);
+  if(uGeom==11)  return nSymResp(p,k,g,N,8);
+  if(uGeom==12)  return squareResp(vec2(p.x*.6,p.y*1.4),k,g,N);
+  if(uGeom==13)  return ringResp(p,k,g,N,M);
+  if(uGeom==14)  return nSymResp(p,k,g,N,3)+circleResp(p,k,g,N/2,3)*.4;
+  if(uGeom==15)  return nSymResp(p,k,g,N,4)+nSymResp(rot2(p,.785),k,g,N,4)*.6;
+  if(uGeom==16)  return circleResp(vec2(p.x,p.y+sin(uTime*.1+p.x)*.3),k,g,N,M);
+  if(uGeom==17)  return sphereNDResp(p,k,g,N,4);
+  if(uGeom==18)  return nSymResp(p,k,g,N,24);
+  if(uGeom==19)  return hyperNDResp(p,k,g,capN(N,true),5);
+  if(uGeom==20)  return sphereNDResp(p,k,g,N,6);
+  if(uGeom==21)  return hyperNDResp(p,k,g,capN(N,true),6);
+  if(uGeom==22)  return sphereNDResp(p,k,g,N,7);
+  if(uGeom==23)  return simplexNDResp(p,k,g,N,7);
+  if(uGeom==24)  return sphereNDResp(p,k,g,N,8);
+  if(uGeom==25)  return simplexNDResp(p,k,g,N,8);
+  if(uGeom==26)  return sphereNDResp(p,k,g,N,9);
+  if(uGeom==27)  return simplexNDResp(p,k,g,N,9);
+  if(uGeom==28)  return simplexNDResp(p,k,g,capN(N,true),10);
+  // 1D new
+  if(uGeom==50)  return lissajousResp(p,k,g,N);
+  if(uGeom==51)  return roseCurveResp(p,k,g,N);
+  // 2D new
+  if(uGeom==52)  return starResp(p,k,g,N);
+  if(uGeom==53)  return spiralResp(p,k,g,N);
+  // Sacred
+  if(uGeom==60)  return seedOfLifeResp(p,k,g,N);
+  if(uGeom==61)  return flowerOfLifeResp(p,k,g,N);
+  if(uGeom==62)  return metatronResp(p,k,g,N);
+  if(uGeom==63)  return vesicaResp(p,k,g,N);
+  if(uGeom==64)  return sriYantraResp(p,k,g,N);
+  if(uGeom==65)  return torusKnotResp(p,k,g,N);
+  if(uGeom==66)  return goldenSpiralResp(p,k,g,N);
+  if(uGeom==67)  return starTetraResp(p,k,g,N);
+  // Fractals
+  if(uGeom==70)  return mandelbrotResp(p,k,g,N);
+  if(uGeom==71)  return juliaResp(p,k,g,N);
+  if(uGeom==72)  return dragonCurveResp(p,k,g,N);
+  if(uGeom==73)  return sierpinskiResp(p,k,g,N);
+  if(uGeom==74)  return kochResp(p,k,g,N);
+  if(uGeom==75)  return lyapunovResp(p,k,g,N);
+  if(uGeom==76)  return ifsFernResp(p,k,g,N);
+  if(uGeom==77)  return newtonResp(p,k,g,N);
+  // 3D new
+  if(uGeom==80)  return torusResp(p,k,g,N);
+  if(uGeom==81)  return mobiusResp(p,k,g,N);
+  // Exotic
+  if(uGeom==90)  return pureChladniResp(p,k,g,N);
+  if(uGeom==91)  return cymbalResp(p,k,g,N);
+  if(uGeom==92)  return voronoiResp(p,k,g,N);
+  if(uGeom==93)  return diffractionResp(p,k,g,N);
+  if(uGeom==94)  return quantumResp(p,k,g,N);
+  if(uGeom==95)  return solitonResp(p,k,g,N);
+  if(uGeom==96)  return harmonographResp(p,k,g,N);
+  if(uGeom==97)  return reactionDiffResp(p,k,g,capN(N,true));
+  return circleResp(p,k,g,N,M);
+}
+
+// ── Dedicated full-color renderer for Human Torus (glCode 82) ──
+
+void main(){
+  vec2 uv=gl_FragCoord.xy/uRes;
+  vec2 p=uv*2.-1.; p.x*=uRes.x/uRes.y;
+
+  // Human Torus (82): dedicated per-chakra color path
+
+  // Ray-marched / parametric geometries use raw NDC coords (ignore zoom/scale/offset)
+  // so their 3D structure is not distorted by the 2D zoom/offset pipeline.
+  // (Moved uGeom==80/81 check down so it inherits the global transform)
+
+  p=rot2(p,uRotAngle);
+  // Apply zoom, waveScale, and offset globally
+  float finalScale = clamp(uWaveScale, 0.05, 20.0) * clamp(uZoom, 0.05, 50.0);
+  p /= finalScale;
+  p -= vec2(uOffsetX, uOffsetY);
+  if(any(isnan(p))||any(isinf(p))){outColor=vec4(0.,0.,0.,1.);return;}
+  if(uBeatPulse) p/=(1.+uBeatEnergy*(uEpiSafe?0.03:0.06));
+
+  // k has 1 trillion zeros of room — no upper clamp.
+  // Audio bands and complexity drive k unboundedly.
+  // For extreme k, we log-fold back into a rich oscillatory band via emergentK,
+  // which the biharmonic denominators handle gracefully (they saturate, not explode).
+  float k=uK*uComplexity;
+  k+=b0*b0*.3*uBassImpact+b1*b1*.8*uBassImpact;
+  k+=b2*b2*1.5*uMidImpact+b3*b3*2.5*uMidImpact+b4*b4*3.5*uMidImpact;
+  k+=b5*b5*5.*uHighImpact+b6*b6*7.*uHighImpact+b7*b7*10.*uHighImpact;
+  k=max(k, 0.001); // floor only — no ceiling
+  // emergentK: log-fold of k back into [0.001, ~300] so extreme values stay visually
+  // alive rather than blanking out. blend factor approaches 1 when k >> 60.
+  float emergentK = k <= 60.0 ? k : (60.0 + log(k - 59.0) * 18.0);
+  float emergentBlend = k <= 60.0 ? 0.0 : clamp((k - 60.0) / (k + 60.0), 0.0, 1.0);
+
+  // ── Ray-marched / parametric geometries now inherit the global transform ──
+  if(uGeom==81){
+    // Möbius strip
+    float kEff = mix(k, emergentK, emergentBlend);
+    float t_m=uTime*.05,th_m=atan(p.y,p.x),r_m=length(p);
+    float twist_m=sin(th_m*.5+t_m);
+    vec2 tp_m=vec2((r_m*0.85)*cos(th_m+twist_m*.35),(p.y*0.85)+twist_m*.45);
+    vec2 pp_m=(tp_m+1.)*0.5; float W81=0.,ns81=0.;
+    for(int n1=0;n1<=uModeN;n1++) for(int n2=0;n2<=uModeN;n2++){
+      if(n1==0&&n2==0) continue;
+      // PROPER MATH: Eigenfrequencies for a stiff square plate ω_n ∝ (n1² + n2²)
+      // In the biharmonic model, the wavenumbers kn are proportional to √ω.
+      float kn81=PI*sqrt(float(n1*n1+n2*n2));
+      float U81=cos(float(n1)*PI*pp_m.x)*cos(float(n2)*PI*pp_m.y);
+      float Usrc81=cos(float(n1)*PI*.5)*cos(float(n2)*PI*.5);
+      float norm81=(n1==0?1.:sqrt(2.))*(n2==0?1.:sqrt(2.)); U81*=norm81; Usrc81*=norm81;
+      // Biharmonic response denominator: (k² - kn²)² + damping
+      float d2_81=(kEff*kEff-kn81*kn81)*(kEff*kEff-kn81*kn81)+4.0*uDamping*uDamping*kEff*kEff;
+      float A81=Usrc81/max(d2_81*.001,1e-6); W81+=A81*U81; ns81+=abs(A81*Usrc81);
+    }
+    W81 = ns81>1e-8 ? W81/ns81 : 0.;
+    float aW81=abs(W81);
+    float lum81=clamp(.04+smoothstep(0.,1.,pow(aW81,0.45))*.92,0.,1.);
+    float phaseG81=atan(W81,max(aW81,1e-5))*.159+.5;
+    float bandTot81=max(b0+b1+b2+b3+b4+b5+b6+b7,.01);
+    float bandHue81=(b0*.0+b1*.07+b2*.15+b3*.27+b4*.38+b5*.55+b6*.7+b7*.85)/bandTot81;
+    float baseH81=fract(bandHue81+uHueShift+uSpecShift+uTime*.018);
+    float sp81=uChromSpread*.25;
+    vec3 col81=hsl(fract(baseH81+phaseG81*sp81),clamp(uSaturation,0.,1.),lum81)*.7
+              +hsl(fract(baseH81+phaseG81*sp81+.02),clamp(uSaturation,0.,1.),clamp(.04+aW81*aW81*.80,0.,.90))*.3;
+    if(uInverse) col81=1.-col81;
+    outColor=vec4(srgb(col81),1.);
+    return;
+  }
+  if(uGeom==80){
+    // Torus
+    float kEff80 = mix(k, emergentK, emergentBlend);
+    float W80 = torusResp(p, kEff80, uDamping, uModeN);
+    float aW = abs(W80);
+    float lum80 = clamp(0.04 + smoothstep(0.,1.,pow(aW,0.45)) * 0.92, 0., 1.);
+    float phase80 = atan(W80, max(aW, 1e-5)) * 0.159 + 0.5;
+    float bandTot80 = max(b0+b1+b2+b3+b4+b5+b6+b7, 0.01);
+    float bandHue80 = (b0*0.+b1*.07+b2*.15+b3*.27+b4*.38+b5*.55+b6*.7+b7*.85)/bandTot80;
+    float baseH80 = fract(bandHue80 + uHueShift + uSpecShift + uTime*0.018);
+    float sp80 = uChromSpread * 0.25;
+    vec3 col80 = hsl(fract(baseH80+phase80*sp80), clamp(uSaturation,0.,1.), lum80)*0.7
+               + hsl(fract(baseH80+phase80*sp80+.02), clamp(uSaturation,0.,1.), clamp(.04+aW*aW*.80,0.,.90))*0.3;
+    if(uInverse) col80 = 1.0 - col80;
+    outColor = vec4(srgb(col80), 1.0);
+    return;
+  }
+
+  float gamma_=uDamping;
+  int N=uModeN,M=uModeM;
+  float aberr=uChromAberr?uChromSpread*.05:0.;
+  // Use emergentK (log-folded) for the actual shader evaluation so that
+  // frequencies beyond k=60 produce a continuously evolving emergent pattern
+  // rather than going blank. When k<=60, emergentK==k and blend==0 (no change).
+  float kR=mix(k,emergentK,emergentBlend)+aberr;
+  float kG=mix(k,emergentK,emergentBlend);
+  float kB=mix(k,emergentK,emergentBlend)-aberr;
+  // Emergent synthesis: a secondary interference field that activates only for
+  // extreme k values — cross-modulates two phase-offset wavenumbers to generate
+  // patterns no predefined mode could produce.
+  float emergSyn=0.;
+  if(emergentBlend>0.001){
+    float ka=emergentK*(1.0+sin(uTime*.07)*.15);
+    float kb=emergentK*(1.0+cos(uTime*.11)*.13);
+    float phi_=1.6180339887;
+    emergSyn=(sin(ka*length(p)+uTime*.05)*cos(kb*(p.x*phi_-p.y)+uTime*.03)
+             +sin(kb*dot(p,vec2(phi_,1.))*1.5+uTime*.08)*.5)*(1./3.);
+  }
+  float wR=mix(getW(p,kR,gamma_,N,M), emergSyn, emergentBlend*.7);
+  float wG=mix(getW(p,kG,gamma_,N,M), emergSyn, emergentBlend*.7);
+  float wB=mix(getW(p,kB,gamma_,N,M), emergSyn, emergentBlend*.7);
+  // Tone-map: amplify mid-range wave values so nodal lines (near zero) stay dark
+  // and anti-nodes (near ±1) glow brightly. Using smoothstep-based contrast.
+  float aR=abs(wR),aG=abs(wG),aB=abs(wB);
+  // Contrast curve: x^0.5 brightens mid-values; multiply by sign to keep phase info
+  float iR=aR*aR, iG=aG*aG, iB=aB*aB;
+  // Nodal lines = where W≈0 → dark. Anti-nodes = where |W|≈1 → bright.
+  // vX = brightness of channel X
+  float vR = uInverse ? (1.-iR) : smoothstep(0.,1.,pow(aR,0.45));
+  float vG = uInverse ? (1.-iG) : smoothstep(0.,1.,pow(aG,0.45));
+  float vB = uInverse ? (1.-iB) : smoothstep(0.,1.,pow(aB,0.45));
+  // Additional contrast pass to make nodal lines crisper
+  vR=pow(max(vR,0.),1.8); vG=pow(max(vG,0.),1.8); vB=pow(max(vB,0.),1.8);
+  float phaseG=atan(wG,max(abs(wG),1e-5))*.159+.5;
+  float col_luma=clamp(.04+vG*.92,0.,1.);
+
+  vec3 col;
+  if(uEpiSafe){
+    float sat=clamp(uEpiSat,0.,1.);
+    col=hsl(uEpiHue,sat,col_luma)*.75
+       +hsl(uEpiHue,sat*.8,clamp(.05+vR*.80,0.,.90))*.15
+       +hsl(uEpiHue,sat*.8,clamp(.05+vB*.80,0.,.90))*.10;
+  } else {
+    float bandTot=max(b0+b1+b2+b3+b4+b5+b6+b7,.01);
+    float bandHue=(b0*.0+b1*.07+b2*.15+b3*.27+b4*.38+b5*.55+b6*.7+b7*.85)/bandTot;
+    float baseH=fract(bandHue+uHueShift+uSpecShift+uTime*.018);
+    float sp=uChromSpread*.25;
+    col=hsl(fract(baseH+phaseG*sp),clamp(uSaturation,0.,1.),col_luma)*.6
+       +hsl(fract(baseH+phaseG*sp+.02),clamp(uSaturation,0.,1.),clamp(.05+vR*.80,0.,.90))*.2
+       +hsl(fract(baseH-phaseG*sp-.02),clamp(uSaturation,0.,1.),clamp(.05+vB*.80,0.,.90))*.2;
+  }
+  float beatF=uEpiSafe?min(uBeatEnergy,.3):uBeatEnergy;
+  if(uBeatPulse) col=mix(col,vec3(1.),beatF*.12);
+  outColor=vec4(srgb(col),1.);
+}`;
+
+// ═══════════════════════════════════════════════════════════════
+// COMPILE SHADER
+// ═══════════════════════════════════════════════════════════════
+function mkShader(t, s) {
+  const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh));
+  return sh;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, mkShader(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, mkShader(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+const vbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
+const pl = gl.getAttribLocation(prog, 'pos');
+gl.enableVertexAttribArray(pl); gl.vertexAttribPointer(pl, 2, gl.FLOAT, false, 0, 0);
+const U = {};
+['uRes','uTime','uRotAngle','uWaveScale','uHueShift','uSaturation','uChromSpread',
+ 'uDamping','uBeatEnergy','uBassImpact','uMidImpact','uHighImpact',
+ 'b0','b1','b2','b3','b4','b5','b6','b7','uK','uModeN','uModeM','uGeom',
+ 'uInverse','uBeatPulse','uChromAberr','uEpiSafe','uEpiHue','uEpiSat',
+ 'uZoom','uComplexity','uOffsetX','uOffsetY','uSpecShift'
+].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER LOOP
+// ═══════════════════════════════════════════════════════════════
+let lastT = 0;
+
+function render(t) {
+  requestAnimationFrame(render);
+  const dt = (t - lastT) * 0.001; lastT = t;
+  const tSec = t * 0.001;
+
+  updateFFT(); drawSpectrum(); updateHUD();
+  _domUpdateFrame++;
+
+  const atc = (EL.audioTotal || document.getElementById('audioTotal')).checked;
+  const epiSafe = (EL.epilepsySafe || document.getElementById('epilepsySafe')).checked;
+
+  let ws = val('waveScale'), rs = val('rotSpeed'), hs = val('hueShift'),
+      sat = val('saturation'), cs = val('chromSpread'),
+      damp = val('damping'), mN = Math.round(val('modeN')),
+      mM = Math.round(val('modeM')),
+      bI = val('bassImpact'), mI = val('midImpact'), hI = val('highImpact'),
+      zoom = (() => { const n = parseFloat(document.getElementById('zoomNum').value); return isNaN(n) || n === 0 ? 1/PHI : n; })(),
+      complexity = val('complexity'),
+      offsetX = val('offsetX'), offsetY = val('offsetY'),
+      specShift = val('specShift');
+
+  // ── Tick growth engine — gives a GL-safe multiplier based on active infinity type
+  const growthScale = tickGrowth(tSec, Math.min(dt, 0.1), beatEnergy);
+  // growthScale is 0 when no infinity selected, otherwise grows per the growth class
+
+  if (atc && analyser) {
+    const b = fftBands;
+    const eps = 1e-6;
+    const tot = Math.max((b[0]+b[1]+b[2]+b[3]+b[4]+b[5]+b[6]+b[7]) / 8, eps);
+    const lowE = (b[0]+b[1]) / 2, midE = (b[2]+b[3]+b[4]) / 3, highE = (b[5]+b[6]+b[7]) / 3;
+    const centroid = (b[1]+b[2]*2+b[3]*3+b[4]*4+b[5]*5+b[6]*6+b[7]*7) / Math.max(tot*8*7, eps);
+    let variance = 0;
+    for (let i = 0; i < 8; i++) variance += b[i] * Math.pow(i - centroid*7, 2);
+    const spread = Math.sqrt(variance / Math.max(tot*8, eps)) / 3.5;
+    let gm = 1; for (let i = 0; i < 8; i++) gm *= Math.max(b[i], eps);
+    const flatness = Math.pow(gm, 1/8) / tot;
+    const tonality = 1 - flatness;
+    const harmonicRich = (b[2]+b[3]+b[4]+b[5]) / Math.max(lowE*4, eps);
+
+    // gs = growth amplifier: 1 when no infinity, scales with growth engine when active
+    // We take log of growthScale so huge values don't just instantly max everything —
+    // the *rate* of change matches the class, not the absolute value clamped to GL max
+    const gs = activeGrowthClass ? (1 + Math.log1p(growthScale) * 0.001) : 1;
+
+    // ALL UNCAPPED — audio × growth engine
+    // WaveScale: keep in [0.3, 3.0] so pattern stays visible; was going up to 8+ before
+    if (!locks.waveScale)   ws = Math.max(0.3, Math.min(3.0, 0.5 + lowE*1.5 + highE*0.8 + beatEnergy*1.2)) * gs;
+    if (!locks.rotSpeed)    rs = ((b[4]-b[5])*12.0 + beatEnergy*8.0 + (b[6]-b[2])*6.0) * gs;
+    if (!locks.hueShift)    hs = ((hs + tSec*0.01 + b[7]*0.5 + beatEnergy*0.2 * gs) % 1 + 1) % 1;
+    // Saturation: cap at 2.0 to prevent full white-out
+    if (!locks.saturation)  sat = Math.min((0.4 + tot*2.0 + beatEnergy*1.0) * gs, 2.0);
+    if (!locks.chromSpread) cs = (b[5]*12.0 + b[6]*8.0 + b[7]*6.0 + beatEnergy*5.0) * gs;
+    if (!locks.damping)     damp = Math.max(0.0001, (0.0005 + b[3]*0.12 + flatness*0.08) / Math.max(gs, 1));
+    if (!locks.modeN)       mN = Math.round(Math.min(2 + harmonicRich*14 + b[4]*6 + beatEnergy*4, 24)); // capped at 24 (was ~46) — halves N² GPU cost on cube/hyper/etc
+    if (!locks.modeM)       mM = Math.round((centroid * 32 + beatEnergy * 12) * gs);
+    // Zoom: keep in [0.2, 3.0] so the shape stays visible; growth engine can push it higher
+    if (!locks.zoom)        zoom = Math.max(0.2, Math.min(3.0, (0.4 + tonality*1.2 + beatEnergy*0.8 + highE*0.6))) * gs;
+    // Complexity: shader now log-folds extreme k via emergentK, so no hard ceiling needed.
+    // Soft cap at 8.0 keeps audio-reactive complexity from going visually incoherent.
+    if (!locks.complexity)  complexity = Math.min((0.1 + harmonicRich*2.0 + b[4]*1.5 + beatEnergy*1.0) * gs, 8.0);
+    if (!locks.offsetX)     offsetX = (Math.sin(tSec*0.3 + b[0]*3.0) * spread * 2.0 + (b[1]-b[5])*1.5) * gs;
+    if (!locks.offsetY)     offsetY = (Math.cos(tSec*0.23 + b[1]*2.5) * spread * 2.0 + (b[0]-b[6])*1.5) * gs;
+    if (!locks.specShift)   specShift = ((b[7] - b[0]) * 3.0 + beatEnergy * 2.0) * gs;
+    if (!locks.bassImpact)  bI = (b[0]*12.0 + b[1]*10.0 + beatEnergy*6.0) * gs;
+    if (!locks.midImpact)   mI = (b[3]*12.0 + b[2]*8.0 + b[4]*6.0 + beatEnergy*4.0) * gs;
+    if (!locks.highImpact)  hI = (b[6]*12.0 + b[7]*10.0 + b[5]*6.0 + beatEnergy*4.0) * gs;
+
+    // Epi safe throttles flicker intensity but not growth
+    if (epiSafe) { bI *= 0.4; mI *= 0.4; hI *= 0.4; sat = Math.min(sat, 1.5); }
+
+    const setS = (id, v) => {
+      // Throttle DOM updates per performance tier
+      if (_domUpdateFrame % getPerfTier().domThrottle !== 0) return;
+      const el = EL[id]; if (el) el.value = v;
+      const nel = EL[id + 'Num']; if (nel) nel.value = typeof v === 'number' ? v.toFixed(3) : '';
+    };
+    setS('waveScale', ws); setS('rotSpeed', rs);
+    if (!locks.hueShift) setS('hueShift', hs);
+    setS('saturation', sat); setS('chromSpread', cs); setS('damping', damp);
+    setS('modeN', mN); setS('modeM', mM);
+    if (!locks.zoom) setS('zoom', zoom);
+    setS('complexity', complexity); setS('offsetX', offsetX); setS('offsetY', offsetY);
+    setS('specShift', specShift); setS('bassImpact', bI); setS('midImpact', mI); setS('highImpact', hI);
+  }
+
+  // AUTO geometry — only runs when 0d is selected
+  if (currentGeom === '0d' && analyser) {
+    computeAutoGeom(tSec, fftBands);
+  }
+
+  // Compute target K
+  if (!(currentMode === 'frequency' && freqLocked)) targetK = computeTargetK();
+  currentK += (targetK - currentK) * Math.min(dt * 4, 0.2);
+  rotAngle += rs * dt;
+
+  // ─── GEOMETRY SELECTION — user click wins, 0d uses autoGeomGlCode ───
+  let glCode;
+  if (currentGeom === '0d') {
+    glCode = autoGeomGlCode;
+  } else {
+    glCode = GEOM_MAP[currentGeom];
+    if (glCode === undefined) glCode = 1;
+  }
+
+  const epiPal = getEpiPalette();
+
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform2f(U.uRes, canvas.width, canvas.height);
+  gl.uniform1f(U.uTime, tSec);
+  gl.uniform1f(U.uRotAngle, rotAngle);
+  gl.uniform1f(U.uWaveScale, Math.max(ws, 0.000001));
+  gl.uniform1f(U.uHueShift, hs);
+  gl.uniform1f(U.uSaturation, sat);
+  gl.uniform1f(U.uChromSpread, cs);
+  gl.uniform1f(U.uDamping, Math.max(damp, 0.0001));
+  gl.uniform1f(U.uBeatEnergy, beatEnergy);
+  gl.uniform1f(U.uBassImpact, bI);
+  gl.uniform1f(U.uMidImpact, mI);
+  gl.uniform1f(U.uHighImpact, hI);
+  // In infinity mode currentK is from freqToK but we also sweep it through
+  // resonance modes over time so the pattern stays visually rich and never goes black.
+  // The shader now handles extreme k via emergentK log-folding, so no ceiling here.
+  let kSend = (isFinite(currentK) && currentK > 0.01) ? currentK : 30;
+  if (activeGrowthClass) {
+    // Sweep k through [2, 60] using a slow sine driven by growth level —
+    // emergentK in the shader will fold anything beyond 60 gracefully.
+    const sweep = 2 + 29 * (0.5 + 0.5 * Math.sin(tSec * 0.18 + growthLevel * 0.0001));
+    kSend = sweep;
+  }
+  gl.uniform1f(U.uK, kSend);
+  gl.uniform1i(U.uModeN, Math.max(Math.round(mN), 2));
+  gl.uniform1i(U.uModeM, Math.max(Math.round(mM), 0));
+  gl.uniform1i(U.uGeom, glCode);
+  for (let i = 0; i < 8; i++) gl.uniform1f(U['b' + i], fftBands[i]);
+  gl.uniform1i(U.uInverse, (EL.inverse || document.getElementById('inverse')).checked ? 1 : 0);
+  gl.uniform1i(U.uBeatPulse, (EL.beatPulse || document.getElementById('beatPulse')).checked ? 1 : 0);
+  gl.uniform1i(U.uChromAberr, (EL.chromAberr || document.getElementById('chromAberr')).checked ? 1 : 0);
+  gl.uniform1i(U.uEpiSafe, epiSafe ? 1 : 0);
+  gl.uniform1f(U.uEpiHue, epiPal.hue);
+  gl.uniform1f(U.uEpiSat, epiPal.sat !== undefined ? epiPal.sat : 0.85);
+  // Zoom: use absolute value (negative zoom is handled by the phi-grid for mirror effect)
+  // but clamp to prevent degenerate values
+  gl.uniform1f(U.uZoom, Math.max(Math.abs(zoom), 1e-4));
+  gl.uniform1f(U.uComplexity, Math.max(complexity, 0.00001));
+  gl.uniform1f(U.uOffsetX, offsetX);
+  gl.uniform1f(U.uOffsetY, offsetY);
+  gl.uniform1f(U.uSpecShift, specShift);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  // ── Inverted canvas background ──
+  // Sample centre pixel and set body background to complementary color
+  // so the background behind transparent areas contrasts with the shape
+  if (invertBgEnabled) {
+    if (!_pixBuf) _pixBuf = new Uint8Array(4); // only alloc when feature is active
+    gl.readPixels(
+      Math.floor(canvas.width / 2), Math.floor(canvas.height / 2),
+      1, 1, gl.RGBA, gl.UNSIGNED_BYTE, _pixBuf
+    );
+    const invR = 255 - _pixBuf[0], invG = 255 - _pixBuf[1], invB = 255 - _pixBuf[2];
+    document.body.style.background = `rgb(${invR},${invG},${invB})`;
+  } else {
+    if (_pixBuf) _pixBuf = null; // free buffer when feature is turned off
+    document.body.style.background = '#000';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INFINITY GROWTH ENGINE
+// Each infinity type has a symbolic "growth regime" that accumulates
+// over time and maps to a visual "hyperscale" factor sent to the shader.
+// JS Numbers can only reach ~1.8e308, so we simulate super-exponential
+// and uncomputable growth in log-space using a "level" accumulator.
+// The visual receives a time-varying signal whose *rate of change*
+// matches the conceptual growth class of the selected infinity.
+// ═══════════════════════════════════════════════════════════════
+
+// Growth class definitions — each has:
+//   grow(t, dt, energy) → returns delta to add to accumulated level each frame
+//   display(level) → string shown in HUD
+//   toGLScale(level) → maps level → shader multiplier (clamped to GL float max)
+const GROWTH_CLASSES = {
+  // Finite large numbers — grow fast but stop at a ceiling
+  'googol':    {
+    grow: (t,dt,e) => dt * (1 + e*2) * 1e2,
+    display: l => '10^' + l.toFixed(1),
+    toGL: l => Math.min(l * 0.001, 1e15),
+  },
+  'googolplex': {
+    grow: (t,dt,e) => dt * Math.pow(10, Math.min((1+e*2)*0.01, 5)),
+    display: l => '10^10^' + Math.log10(Math.max(l,1)).toFixed(2),
+    toGL: l => Math.min(l * 0.0001, 1e15),
+  },
+  'skewes': {
+    grow: (t,dt,e) => dt * Math.exp(Math.min((1+e)*3, 30)),
+    display: l => 'e^e^e^' + Math.log(Math.log(Math.max(l,Math.E)+1)+1).toFixed(2),
+    toGL: l => Math.min(l * 0.001, 1e15),
+  },
+  'knuth': {
+    // 3↑↑↑3 — tetration speed: level grows like a power tower
+    grow: (t,dt,e) => {
+      const tower = Math.min(t * (1+e) * 0.1, 30); // log of level
+      return dt * Math.pow(3, Math.min(tower * 0.3, 20));
+    },
+    display: l => '3↑↑(' + Math.log(Math.max(l,1)).toFixed(1) + ')',
+    toGL: l => Math.min(Math.log1p(l) * 500, 1e15),
+  },
+  'graham': {
+    // Graham's number: grows like iterated tetration G_n
+    // We simulate by: level advances through "layers" g1→g2→…→g64
+    // each layer multiplies rate by previous layer
+    grow: (t,dt,e) => {
+      const layer = Math.min(Math.floor(t*(1+e)*0.02), 64);
+      // rate at layer n is 3↑^n 3 which we approximate as exp(exp(layer))
+      const rate = Math.min(Math.exp(Math.min(layer*0.7, 30)), 1e30);
+      return dt * rate;
+    },
+    display: l => {
+      const layer = Math.floor(Math.log(Math.max(l,1)+1)*0.5);
+      return 'G_' + Math.min(layer,64) + ' layer';
+    },
+    toGL: l => Math.min(Math.log1p(Math.log1p(l)) * 2000, 1e15),
+  },
+  'bb5': {
+    // Busy Beaver BB(5) = 47,176,870 — finite but we use it as a growth seed
+    grow: (t,dt,e) => dt * 47176870 * (1+e) * Math.pow(1.5, Math.min(t*0.01*(1+e), 40)),
+    display: l => 'BB5·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(l) * 300, 1e15),
+  },
+  'bb6': {
+    // BB(6) > 10^10^10^10^18 — grows hyper-exponentially
+    grow: (t,dt,e) => {
+      // Each second the exponent tower grows by energy
+      const towerDepth = Math.min(t * (1+e) * 0.05, 5);
+      let val = 10;
+      for (let i=0; i<towerDepth; i++) val = Math.min(Math.pow(10, Math.log10(val+1)*1.2), 1e300);
+      return dt * Math.min(val, 1e200);
+    },
+    display: l => 'BB6·10^' + Math.log10(Math.max(l,1)).toFixed(1),
+    toGL: l => Math.min(Math.log1p(Math.log1p(Math.log1p(l))) * 5000, 1e15),
+  },
+  'tree3': {
+    // TREE(3) dwarfs Graham — we simulate via triple-iterated exp growth
+    grow: (t,dt,e) => {
+      const a = Math.min(t*(1+e)*0.1, 20);
+      const b = Math.min(Math.exp(a), 1e100);
+      const c = Math.min(Math.exp(Math.log1p(b)*0.1), 1e100);
+      return dt * c;
+    },
+    display: l => 'TREE(3)·exp³(' + Math.log(Math.max(l,1)).toFixed(1) + ')',
+    toGL: l => Math.min(Math.log1p(Math.log1p(Math.log1p(Math.log1p(l)+1)+1)+1) * 8000, 1e15),
+  },
+  'scg': {
+    // SCG(13) — beyond TREE(3). Simulate as TREE(3) rate squared
+    grow: (t,dt,e) => {
+      const a = Math.min(t*(1+e)*0.1, 10);
+      const r = Math.min(Math.exp(Math.exp(Math.min(a*0.5,15))), 1e200);
+      return dt * r;
+    },
+    display: l => 'SCG(13)·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(Math.log1p(Math.log1p(Math.log1p(Math.log1p(l)+1)+1)+1)+1)*12000, 1e15),
+  },
+  'loader': {
+    // Loader's number — total computable functions. We chain 6 log layers
+    grow: (t,dt,e) => {
+      const depth = 6;
+      let r = t*(1+e)*0.1;
+      for (let i=0;i<depth;i++) r = Math.min(Math.exp(Math.min(r,30)),1e200);
+      return dt * Math.min(r, 1e200);
+    },
+    display: l => 'Loader·' + l.toExponential(2),
+    toGL: l => { let v=l; for(let i=0;i<7;i++) v=Math.log1p(v); return Math.min(v*15000, 1e15); },
+  },
+  'rayo': {
+    // Rayo's number — "largest definable in FOL in ≤10^100 symbols"
+    // Growth: each frame we add exp^(10) of energy — beyond all prior classes
+    grow: (t,dt,e) => {
+      let r = (1+e)*t*0.001;
+      for (let i=0;i<10;i++) r = Math.min(Math.exp(Math.min(r,15)),1e200);
+      return dt * Math.min(r,1e200);
+    },
+    display: l => 'Rayo·' + l.toExponential(2),
+    toGL: l => { let v=l; for(let i=0;i<9;i++) v=Math.log1p(v); return Math.min(v*20000, 1e15); },
+  },
+  'bigfoot': {
+    // BIG FOOT / FOOT function — beyond Rayo. Adds one more meta-layer
+    grow: (t,dt,e) => {
+      let r = (1+e)*t*0.0001;
+      for (let i=0;i<12;i++) r = Math.min(Math.exp(Math.min(r,12)),1e200);
+      return dt * Math.min(r,1e200);
+    },
+    display: l => 'FOOT·' + l.toExponential(2),
+    toGL: l => { let v=l; for(let i=0;i<11;i++) v=Math.log1p(v); return Math.min(v*25000, 1e15); },
+  },
+  // Transfinite — these are "eternal": they grow at ω-rate (unbounded, steady stream)
+  'omega': {
+    grow: (t,dt,e) => dt * (1+e) * 1000,
+    display: l => 'ω·' + l.toExponential(2),
+    toGL: l => Math.min(l * 0.01, 1e15),
+  },
+  'omega2': {
+    grow: (t,dt,e) => dt * (1+e) * 1000 * Math.max(t*(1+e)*0.1,1),
+    display: l => 'ω²·' + l.toExponential(2),
+    toGL: l => Math.min(Math.sqrt(l) * 10, 1e15),
+  },
+  'epsilon0': {
+    grow: (t,dt,e) => dt * (1+e) * Math.pow(1000, Math.min(1+t*(1+e)*0.001, 5)),
+    display: l => 'ε₀·' + l.toExponential(2),
+    toGL: l => Math.min(Math.pow(Math.log1p(l), 2) * 100, 1e15),
+  },
+  'epsilon1': {
+    grow: (t,dt,e) => dt * (1+e) * Math.pow(1000, Math.min(1+t*(1+e)*0.002, 8)),
+    display: l => 'ε₁·' + l.toExponential(2),
+    toGL: l => Math.min(Math.pow(Math.log1p(l), 2.5) * 200, 1e15),
+  },
+  'zeta0': {
+    grow: (t,dt,e) => dt * (1+e) * Math.pow(1000, Math.min(1+t*(1+e)*0.003, 12)),
+    display: l => 'ζ₀·' + l.toExponential(2),
+    toGL: l => Math.min(Math.pow(Math.log1p(l), 3) * 400, 1e15),
+  },
+  'gamma0': {
+    grow: (t,dt,e) => dt * (1+e) * Math.pow(10000, Math.min(1+t*(1+e)*0.004, 15)),
+    display: l => 'Γ₀·' + l.toExponential(2),
+    toGL: l => Math.min(Math.pow(Math.log1p(l), 4) * 600, 1e15),
+  },
+  'omega1': {
+    grow: (t,dt,e) => dt * (1+e) * 1e10,
+    display: l => 'Ω₁·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(l) * 5000, 1e15),
+  },
+  'aleph0': {
+    grow: (t,dt,e) => dt * (1+e) * 1e8,
+    display: l => 'ℵ₀·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(l) * 3000, 1e15),
+  },
+  'aleph1': {
+    grow: (t,dt,e) => dt * (1+e) * 1e10,
+    display: l => 'ℵ₁·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(l) * 6000, 1e15),
+  },
+  'alepho': {
+    grow: (t,dt,e) => dt * (1+e) * Math.pow(10, Math.min(t*(1+e)*0.01, 20)),
+    display: l => 'ℵ_ω·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(l) * 8000, 1e15),
+  },
+  'continuum': {
+    grow: (t,dt,e) => dt * (1+e) * Math.pow(2, Math.min(t*(1+e)*0.05,50)),
+    display: l => '𝔠·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(l) * 7000, 1e15),
+  },
+  'beth2': {
+    grow: (t,dt,e) => dt * (1+e) * Math.pow(2, Math.min(t*(1+e)*0.1,60)),
+    display: l => 'beth₂·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(l) * 9000, 1e15),
+  },
+  'inaccessible': {
+    grow: (t,dt,e) => { let r=dt*(1+e)*1e12; for(let i=0;i<3;i++) r=Math.min(r*Math.log1p(r*1e-100+1),1e200); return r; },
+    display: l => 'I₀·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(Math.log1p(l)) * 10000, 1e15),
+  },
+  'measurable': {
+    grow: (t,dt,e) => { let r=dt*(1+e)*1e14; for(let i=0;i<5;i++) r=Math.min(r*Math.log1p(r*1e-150+1),1e200); return r; },
+    display: l => 'I₁·' + l.toExponential(2),
+    toGL: l => Math.min(Math.log1p(Math.log1p(l)) * 12000, 1e15),
+  },
+  'reinhardt': {
+    // Reinhardt cardinal — inconsistent with AC, the ultimate large cardinal
+    // Growth: each frame applies itself recursively (fixed point iteration)
+    grow: (t,dt,e) => { let r=dt*(1+e); for(let i=0;i<20;i++) r=Math.min(Math.exp(Math.min(r*0.01,20)),1e200); return r; },
+    display: l => 'j:V→V·' + l.toExponential(2),
+    toGL: l => { let v=l; for(let i=0;i<13;i++) v=Math.log1p(v); return Math.min(v*30000, 1e15); },
+  },
+  'absolute': {
+    // Absolute Infinity — the class of ALL ordinals. No growth function can describe it.
+    // We use the fastest growing regime we have, then apply it to itself
+    grow: (t,dt,e) => {
+      let r = dt*(1+e);
+      for(let i=0;i<30;i++) r = Math.min(Math.exp(Math.min(r*0.001,15)),1e200);
+      return r;
+    },
+    display: l => '∞ Absolute',
+    toGL: l => 1e15, // always maximum — it IS everything
+  },
+};
+
+// Map INFINITY_FREQS entries to growth class keys
+const INF_TO_GROWTH = {
+  'G':       'graham',
+  'BB(5)':   'bb5',
+  'BB(6)':   'bb6',
+  'TREE(3)': 'tree3',
+  'SCG(13)': 'scg',
+  'Rayo':    'rayo',
+  'Fish7':   'rayo',      // same tier as Rayo for our purposes
+  'BIG FOOT':'bigfoot',
+  'Loader':  'loader',
+  'Sk(1)':   'skewes',
+  'Ggl':     'googol',
+  'Gglpx':   'googolplex',
+  '↑↑↑':     'knuth',
+  'ω':       'omega',
+  'ω²':      'omega2',
+  'ωω':      'epsilon0',
+  'ε₁':      'epsilon1',
+  'ζ₀':      'zeta0',
+  'Γ₀':      'gamma0',
+  'Ω':       'omega1',
+  'ℵ₀':      'aleph0',
+  'ℵ₁':      'aleph1',
+  'ℵω':      'alepho',
+  '𝔠':       'continuum',
+  'beth₂':   'beth2',
+  'I₀':      'inaccessible',
+  'I₁':      'measurable',
+  'j:V→V':   'reinhardt',
+  '∞':       'absolute',
+};
+
+// Active growth state
+let activeGrowthClass = null;  // key into GROWTH_CLASSES, or null
+let growthLevel = 0;           // accumulated "level" — dimensionless
+let growthStartT = 0;          // tSec when growth began
+let growthLastT = 0;
+
+function setGrowthClass(sym) {
+  const key = INF_TO_GROWTH[sym];
+  if (!key || !GROWTH_CLASSES[key]) { activeGrowthClass = null; growthLevel = 0; return; }
+  activeGrowthClass = key;
+  growthLevel = 0;
+  growthStartT = 0; // will be set on first frame
+  growthLastT = -1;
+}
+
+function tickGrowth(tSec, dt, beatEnergy) {
+  if (!activeGrowthClass) return 0;
+  if (growthLastT < 0) { growthStartT = tSec; growthLastT = tSec; return 0; }
+  const elapsed = tSec - growthStartT;
+  const gc = GROWTH_CLASSES[activeGrowthClass];
+  const delta = gc.grow(elapsed, dt, beatEnergy);
+  growthLevel = Math.min(growthLevel + (isFinite(delta) ? delta : 1e200), Number.MAX_VALUE);
+  growthLastT = tSec;
+  return gc.toGL(growthLevel);
+}
+
+function growthHUDString() {
+  if (!activeGrowthClass) return '';
+  const gc = GROWTH_CLASSES[activeGrowthClass];
+  return gc.display(growthLevel);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SOLFEGGIO FREQUENCIES — sorted by harmonic ratio (simplest first)
+// ═══════════════════════════════════════════════════════════════
+const SOLFEGGIO = [
+  // ratio = interval from 1:1 unison upward through the series
+  { hz: 174,  name: 'Foundation',      ratio: '~3:1',    desc: 'Pain reduction, grounding, security' },
+  { hz: 285,  name: 'Quantum',         ratio: '~5:3',    desc: 'Tissue regeneration, field restoration' },
+  { hz: 396,  name: 'Ut — Liberation', ratio: '~7:5',    desc: 'Liberating guilt and fear, root chakra' },
+  { hz: 417,  name: 'Re — Undoing',    ratio: '~7:5+',   desc: 'Undoing situations, facilitating change' },
+  { hz: 432,  name: 'A4 Natural',      ratio: '432:1',   desc: 'Natural tuning — A432 concert pitch' },
+  { hz: 440,  name: 'A4 Standard',     ratio: '440:1',   desc: 'ISO standard concert pitch' },
+  { hz: 528,  name: 'Mi — Miracle',    ratio: '~3:2',    desc: 'DNA repair, transformation, love frequency' },
+  { hz: 531,  name: 'C5 Just',         ratio: '531:440', desc: 'Just-intonation C above A440' },
+  { hz: 639,  name: 'Fa — Connecting', ratio: '~9:7',    desc: 'Connecting relationships, heart chakra' },
+  { hz: 741,  name: 'Sol — Awakening', ratio: '~5:3',    desc: 'Awakening intuition, throat chakra' },
+  { hz: 852,  name: 'La — Intuition',  ratio: '~7:4',    desc: 'Returning to spiritual order, third eye' },
+  { hz: 963,  name: 'Si — Divine',     ratio: '~11:6',   desc: 'Crown chakra, divine consciousness, unity' },
+  { hz: 1074, name: 'Extended Sol',    ratio: '~6:1',    desc: 'Extended solfeggio — beyond octave' },
+  { hz: 1122, name: 'Extended La',     ratio: '~13:6',   desc: 'Extended solfeggio series' },
+  { hz: 1185, name: 'Extended Si',     ratio: '~7:3',    desc: 'Extended solfeggio series' },
+  { hz: 1296, name: '2× Ut',           ratio: '2×396',   desc: 'Octave harmonic of Ut' },
+  { hz: 1584, name: '3× Ut',           ratio: '3×528',   desc: 'Harmonic third of Mi' },
+  { hz: 2160, name: '5× Ut',           ratio: '5×432',   desc: 'Pentatonic harmonic of A432' },
+];
+// Sort by ratio approximation (already sorted by hz which approximates ratio order)
+
+// ═══════════════════════════════════════════════════════════════
+// INFINITIES & TRANSFINITE / LARGE NUMBERS
+// max displayable float used for all; k is set to shader maximum
+// ═══════════════════════════════════════════════════════════════
+const INFINITY_FREQS = [
+  // Large but finite — actual numeric approximations used for k
+  { sym: 'G',      name: "Graham's Number",          kval: 'max', desc: "G64 — tower of 3↑↑…↑3, largest ever used in a proof (1977)" },
+  { sym: 'BB(5)',  name: 'Busy Beaver BB(5)',         kval: 'max', desc: 'Σ(5)=47,176,870 — max 1s a 5-state Turing machine writes before halting' },
+  { sym: 'BB(6)',  name: 'Busy Beaver BB(6)',         kval: 'max', desc: 'Σ(6) > 10^10^10^10^18 — grows faster than any computable function' },
+  { sym: 'TREE(3)',name: 'TREE(3)',                   kval: 'max', desc: 'Friedman TREE function — dwarfs Graham\'s Number incomprehensibly' },
+  { sym: 'SCG(13)',name: 'SCG(13)',                   kval: 'max', desc: 'Sub-cubic graph function — far beyond TREE(3)' },
+  { sym: 'Rayo',   name: "Rayo's Number",             kval: 'max', desc: 'Smallest number larger than any definable in first-order set theory in ≤10¹⁰⁰ symbols' },
+  { sym: 'Fish7',  name: 'Fish Number 7',             kval: 'max', desc: 'Aarex Tiaokhiao — larger than Rayo via "extended Rayo"' },
+  { sym: 'BIG FOOT',name:'BIG FOOT',                  kval: 'max', desc: 'Largest "well-defined" googological number — uses FOOT function' },
+  { sym: 'Loader', name: "Loader's Number",           kval: 'max', desc: 'Based on total computable functions — exceeds most googological numbers' },
+  { sym: 'Sk(1)',  name: 'Skewes\' Number (orig)',    kval: 1e10,  desc: 'e^e^e^79 ≈ 10^10^10^34 — first Skewes bound for π(x)>li(x)' },
+  { sym: 'Ggl',    name: 'Googol',                    kval: 1e100, desc: '10^100 — coined by Milton Sirotta age 9 (1920)' },
+  { sym: 'Gglpx',  name: 'Googolplex',                kval: 'max', desc: '10^10^100 — a 1 followed by a googol zeros' },
+  { sym: '↑↑↑',   name: 'Knuth Arrow 3↑↑↑3',        kval: 'max', desc: '3↑↑↑3 = 3^3^3^…^3 (7.6 trillion 3s) — Knuth up-arrow notation' },
+  { sym: 'ω',      name: 'Omega ω',                   kval: 'inf', desc: 'First transfinite ordinal — the order type of the natural numbers' },
+  { sym: 'ω²',     name: 'Omega squared ω²',          kval: 'inf', desc: 'Ordinal ω×ω — countable infinity squared' },
+  { sym: 'ωω',     name: 'Epsilon naught ε₀',         kval: 'inf', desc: 'ω^ω^ω^… — first ordinal satisfying ε=ω^ε' },
+  { sym: 'ε₁',     name: 'Epsilon one ε₁',            kval: 'inf', desc: 'Second fixed point of α↦ω^α' },
+  { sym: 'ζ₀',     name: 'Zeta naught ζ₀',            kval: 'inf', desc: 'First fixed point of α↦ε_α — Feferman–Schütte territory' },
+  { sym: 'Γ₀',     name: 'Gamma naught Γ₀',           kval: 'inf', desc: 'Feferman–Schütte ordinal — limit of Veblen hierarchy' },
+  { sym: 'Ω',      name: 'First uncountable Ω₁',      kval: 'inf', desc: 'ω₁ — the first uncountable ordinal. Cannot be reached from below by any countable process' },
+  { sym: 'ℵ₀',     name: 'Aleph-null ℵ₀',             kval: 'inf', desc: 'Cardinality of the natural numbers — the smallest infinite cardinal' },
+  { sym: 'ℵ₁',     name: 'Aleph-one ℵ₁',              kval: 'inf', desc: 'Cardinality of all countable ordinals. CH: ℵ₁ = 2^ℵ₀?' },
+  { sym: 'ℵω',     name: 'Aleph-omega ℵ_ω',           kval: 'inf', desc: 'First aleph with an infinite index — unprovably singular?' },
+  { sym: '𝔠',      name: 'Continuum 𝔠',               kval: 'inf', desc: '2^ℵ₀ — cardinality of the real numbers. Provably > ℵ₀' },
+  { sym: 'beth₂',  name: 'Beth-two beth(2)',           kval: 'inf', desc: '2^𝔠 — cardinality of all functions ℝ→ℝ' },
+  { sym: 'I₀',     name: 'Inaccessible Cardinal',     kval: 'inf', desc: 'Cannot be reached by power sets or sums from below — requires new axioms' },
+  { sym: 'I₁',     name: 'Measurable Cardinal',       kval: 'inf', desc: 'Admits a non-trivial κ-complete ultrafilter — transcends ZFC provability' },
+  { sym: 'j:V→V',  name: 'Reinhardt Cardinal',        kval: 'inf', desc: 'Largest large cardinal — a non-trivial elementary embedding V→V. Inconsistent with AC' },
+  { sym: '∞',      name: 'Absolute Infinity ∞',        kval: 'inf', desc: 'Cantor\'s Absolute — the class of all ordinals. Transcends all set-theoretic description' },
+];
+
+function buildSolfeggioList() {
+  const wrap = document.getElementById('solfeggioList');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  SOLFEGGIO.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'freq-row';
+    row.innerHTML = `<span class="freq-row-hz">${s.hz} Hz</span><span class="freq-row-name">${s.name}<span class="freq-row-desc">${s.desc}</span></span><span class="freq-row-ratio">${s.ratio}</span>`;
+    row.onclick = () => setFreq(s.hz);
+    wrap.appendChild(row);
+  });
+}
+
+function buildInfinityList() {
+  const wrap = document.getElementById('infinityList');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  INFINITY_FREQS.forEach(inf => {
+    const row = document.createElement('div');
+    row.className = 'inf-row';
+    row.innerHTML = `<span class="inf-row-sym">${inf.sym}</span><span class="inf-row-name">${inf.name}<span class="inf-row-desc">${inf.desc}</span></span>`;
+    row.onclick = () => {
+      if (inf.kval === 'inf' || inf.kval === 'max') {
+        lockedFreqHz = Infinity;
+        freqLocked = true;
+        targetK = 1e15;
+        currentK = 1e15;
+        setGrowthClass(inf.sym);  // activate growth engine for this infinity type
+        document.getElementById('freq-hz-input').value = '';
+        document.getElementById('freq-hz-input').placeholder = inf.sym + ' — ' + inf.name;
+      } else {
+        activeGrowthClass = null; growthLevel = 0;
+        setFreq(inf.kval);
+      }
+    };
+    wrap.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOM READY — build all dynamic UI safely after DOM exists
+// ═══════════════════════════════════════════════════════════════
+function domInit() {
+  cacheElements(); // populate element cache before anything else reads it
+  buildGeoGrid();
+  buildPhiGrid();
+  buildEpiSwatches();
+  buildSolfeggioList();
+  buildInfinityList();
+  buildPerfGrid();
+  setZoom(1 / PHI);
+
+  // Resume AudioContext on any interaction (silent, no banner)
+  document.body.addEventListener('touchstart', () => {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }, { passive: true });
+  document.body.addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  });
+
+  requestAnimationFrame(render);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', domInit);
+} else {
+  domInit();
+}
+</script>
+
+
+
+</body>
+</html>
